@@ -270,9 +270,9 @@ void shareElmMaskN(f_elm_t elmMaskServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_
     }
 }
 
-void expandAggregateResN(f_elm_t resServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
-                         f_elm_t expAggrRes[][N_SHARES * N_SHARES], int shareDistr[][N_SHARES],
-                         int n, int n_bits, int n_shares)
+void aggregateResN(f_elm_t resServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
+                   f_elm_t expAggrRes[][N_SHARES * N_SHARES], int shareDistr[][N_SHARES],
+                   int n, int n_bits, int n_shares)
 {
     int servInd[n];
     memset(servInd, 0, sizeof(servInd));
@@ -281,10 +281,15 @@ void expandAggregateResN(f_elm_t resServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_
     f_elm_t zero;
     f_from_ui(zero, zero_ui);
 
-    f_elm_t(*expRes)[n][n_shares * n_shares] =
-        malloc(sizeof(f_elm_t) * N_BITS * N * N_SHARES * N_SHARES);
-    f_elm_t sum_1;
-    f_elm_t sum_2;
+    f_elm_t sum;
+
+    for (int r = 0; r < n_bits; r++)
+    {
+        for (int i = 0; i < (n_shares * n_shares); i++)
+        {
+            f_copy(zero, expAggrRes[r][i]);
+        }
+    }
 
     for (int i = 0; i < n_shares; i++)
     {
@@ -296,37 +301,14 @@ void expandAggregateResN(f_elm_t resServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_
                 {
                     for (int r = 0; r < n_bits; r++)
                     {
-                        f_copy(resServ[k][r][servInd[k]], expRes[r][k][i * n_shares + j]);
+                        f_add(resServ[k][r][servInd[k]], expAggrRes[r][i * n_shares + j], sum);
+                        f_copy(sum, expAggrRes[r][i * n_shares + j]);
                     }
                     servInd[k] += 1;
                 }
-                else
-                {
-                    for (int r = 0; r < n_bits; r++)
-                    {
-                        f_copy(zero, expRes[r][k][i * n_shares + j]);
-                    }
-                }
             }
         }
     }
-
-    for (int r = 0; r < n_bits; r++)
-    {
-        for (int i = 0; i < (n_shares * n_shares); i++)
-        {
-            f_copy(zero, sum_1);
-            for (int j = 0; j < n; j++)
-            {
-                f_add(expRes[r][j][i], sum_1, sum_2);
-                f_copy(sum_2, sum_1);
-            }
-
-            f_copy(sum_2, expAggrRes[r][i]);
-        }
-    }
-
-    free(expRes);
 }
 
 void aggregateVectorN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t res[], int n_bits, int n_shares)

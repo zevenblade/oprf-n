@@ -309,14 +309,16 @@ int main()
 
     // for (int r = 0; r < N_BITS; r++)
     // {
-    //     for (int j = 0; j < 4; j++)
+    //     printf("%03d: ", r);
+    //     for (int j = 96; j < 100; j++)
     //     {
-    //         print_f_elm_l(resSharesServ[0][r][j]);
+    //         print_f_elm_l(resSharesServ[5][r][j]);
     //     }
     //     printf("\n");
     // }
 
-    expandAggregateResN(resSharesServ, expAggrRes, shareDistr, N, N_BITS, N_SHARES);
+    //expandAggregateResN(resSharesServ, expAggrRes, shareDistr, N, N_BITS, N_SHARES);
+    aggregateResN(resSharesServ, expAggrRes, shareDistr, N, N_BITS, N_SHARES);
 
     mergeHashesN(hashes, mergedHashes, shareDistr, N, N_BITS, N_SHARES);
     compareHashesN(expAggrRes, mergedHashes, checkHash, N_BITS, N_SHARES * N_SHARES);

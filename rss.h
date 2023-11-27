@@ -7,7 +7,7 @@
 #define N 6
 #define N_SHARES 15
 #define N_SHARES_P_SERVER 10
-#define N_BITS 45
+#define N_BITS 16
 #define N_TRANSMIT 1
 
 unsigned long long factorial(int num);
@@ -40,11 +40,11 @@ void shareMultMaskN(f_elm_t multMaskServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_
 void shareElmMaskN(f_elm_t elmMaskServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
                    int shareDistr[][N_SHARES], int shareCount[][N_SHARES], int n, int n_shares);
 
-void expandAggregateResN(f_elm_t resServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
-                         f_elm_t expAggrRes[][N_SHARES * N_SHARES], int shareDistr[][N_SHARES],
-                         int n, int n_bits, int n_shares);
+void aggregateResN(f_elm_t resServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
+                   f_elm_t expAggrRes[][N_SHARES * N_SHARES], int shareDistr[][N_SHARES],
+                   int n, int n_bits, int n_shares);
 
-void aggregateVectorN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t res[], int n_bits, int n_shares);
+    void aggregateVectorN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t res[], int n_bits, int n_shares);
 
 void mergeHashesN(f_elm_t hashes[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
                   f_elm_t mergedHashes[][N_SHARES * N_SHARES], int shareDistr[][N_SHARES],
