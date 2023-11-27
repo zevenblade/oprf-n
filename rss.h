@@ -7,8 +7,8 @@
 #define N 6
 #define N_SHARES 15
 #define N_SHARES_P_SERVER 10
-#define N_BITS 45
-#define N_TRANSMIT 4
+#define N_BITS 4
+#define N_TRANSMIT 1
 
 unsigned long long factorial(int num);
 
@@ -34,11 +34,11 @@ void keySharingServersN(f_elm_t sharesServer[][N_BITS][N_SHARES_P_SERVER], f_elm
 
 void generateFractions(f_elm_t fractionMatrix[][N_SHARES], int shareCount[][N_SHARES], int n_shares);
 
-void shareMultMask(f_elm_t multMaskServ[][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
-                   f_elm_t multMask[], int shareDistr[][N_SHARES], int n, int n_shares);
+void shareMultMaskN(f_elm_t multMaskServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
+                    int shareDistr[][N_SHARES], int n, int n_shares);
 
-void shareElmMask(f_elm_t elmMaskServ[][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
-                  int shareDistr[][N_SHARES], int shareCount[][N_SHARES], int n, int n_shares);
+void shareElmMaskN(f_elm_t elmMaskServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
+                   int shareDistr[][N_SHARES], int shareCount[][N_SHARES], int n, int n_shares);
 
 void expandAggregateResN(f_elm_t resServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
                          f_elm_t expAggrRes[][N_SHARES * N_SHARES], int shareDistr[][N_SHARES],

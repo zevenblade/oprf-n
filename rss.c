@@ -1,5 +1,5 @@
 #include <string.h>
-#include <stdio.h>
+#include <stdlib.h>
 
 #include "rss.h"
 #include "arith.h"
@@ -197,33 +197,44 @@ void generateFractions(f_elm_t fractionMatrix[][N_SHARES], int shareCount[][N_SH
     }
 }
 
-void shareMultMask(f_elm_t multMaskServ[][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
-                   f_elm_t multMask[], int shareDistr[][N_SHARES], int n, int n_shares)
+void shareMultMaskN(f_elm_t multMaskServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
+                    int shareDistr[][N_SHARES], int n, int n_shares)
 {
     int servInd[n];
-    memset(servInd, 0, sizeof(servInd));
 
-    for (int i = 0; i < n_shares; i++)
+    uint64_t zero_ui = 0;
+    f_elm_t zero;
+    f_from_ui(zero, zero_ui);
+
+    f_elm_t multMask[N_SHARES * N_SHARES];
+
+    for (int r = 0; r < N_BITS; r++)
     {
-        for (int j = 0; j < n_shares; j++)
+        memset(servInd, 0, sizeof(servInd));
+
+        secretSharing(multMask, zero, N_SHARES * N_SHARES);
+
+        for (int i = 0; i < n_shares; i++)
         {
-            for (int k = 0; k < n; k++)
+            for (int j = 0; j < n_shares; j++)
             {
-                if ((shareDistr[k][i] == 1) && (shareDistr[k][j] == 1))
+                for (int k = 0; k < n; k++)
                 {
-                    f_copy(multMask[i * n_shares + j], multMaskServ[k][servInd[k]]);
-                    servInd[k] += 1;
+                    if ((shareDistr[k][i] == 1) && (shareDistr[k][j] == 1))
+                    {
+                        f_copy(multMask[i * n_shares + j], multMaskServ[k][r][servInd[k]]);
+                        servInd[k] += 1;
+                    }
                 }
             }
         }
     }
 }
 
-void shareElmMask(f_elm_t elmMaskServ[][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
-                  int shareDistr[][N_SHARES], int shareCount[][N_SHARES], int n, int n_shares)
+void shareElmMaskN(f_elm_t elmMaskServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
+                   int shareDistr[][N_SHARES], int shareCount[][N_SHARES], int n, int n_shares)
 {
     int servInd[n];
-    memset(servInd, 0, sizeof(servInd));
 
     uint64_t zero_ui = 0;
     f_elm_t zero;
@@ -232,22 +243,27 @@ void shareElmMask(f_elm_t elmMaskServ[][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
     int n_row_shares;
     int indRowShare;
 
-    for (int i = 0; i < n_shares; i++)
+    for (int r = 0; r < N_BITS; r++)
     {
-        for (int j = 0; j < n_shares; j++)
-        {
-            n_row_shares = shareCount[i][j];
-            f_elm_t rowShares[n_row_shares];
-            secretSharing(rowShares, zero, n_row_shares);
+        memset(servInd, 0, sizeof(servInd));
 
-            indRowShare = 0;
-            for (int k = 0; k < n; k++)
+        for (int i = 0; i < n_shares; i++)
+        {
+            for (int j = 0; j < n_shares; j++)
             {
-                if ((shareDistr[k][i] == 1) && (shareDistr[k][j] == 1))
+                n_row_shares = shareCount[i][j];
+                f_elm_t rowShares[n_row_shares];
+                secretSharing(rowShares, zero, n_row_shares);
+
+                indRowShare = 0;
+                for (int k = 0; k < n; k++)
                 {
-                    f_copy(rowShares[indRowShare], elmMaskServ[k][servInd[k]]);
-                    servInd[k] += 1;
-                    indRowShare += 1;
+                    if ((shareDistr[k][i] == 1) && (shareDistr[k][j] == 1))
+                    {
+                        f_copy(rowShares[indRowShare], elmMaskServ[k][r][servInd[k]]);
+                        servInd[k] += 1;
+                        indRowShare += 1;
+                    }
                 }
             }
         }
@@ -265,7 +281,7 @@ void expandAggregateResN(f_elm_t resServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_
     f_elm_t zero;
     f_from_ui(zero, zero_ui);
 
-    f_elm_t (*expRes)[n][n_shares * n_shares] = 
+    f_elm_t(*expRes)[n][n_shares * n_shares] =
         malloc(sizeof(f_elm_t) * N_BITS * N * N_SHARES * N_SHARES);
     f_elm_t sum_1;
     f_elm_t sum_2;
@@ -309,6 +325,8 @@ void expandAggregateResN(f_elm_t resServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_
             f_copy(sum_2, expAggrRes[r][i]);
         }
     }
+
+    free(expRes);
 }
 
 void aggregateVectorN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t res[], int n_bits, int n_shares)

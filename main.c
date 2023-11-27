@@ -136,9 +136,9 @@ int main()
     int shareCount[N_SHARES][N_SHARES] = {0};
     int shareMap[N][N_SHARES_P_SERVER] = {0};
 
-    uint64_t sec_val = 1;
+    uint64_t sec_val = 0;
     uint64_t key_val = 1;
-    uint64_t s2_val = 9;
+    uint64_t s2_val = 2;
     uint64_t zero = 0;
 
     f_elm_t fractionMatrix[N_SHARES][N_SHARES];
@@ -156,13 +156,15 @@ int main()
     f_elm_t s2Shares[N_SHARES];
     f_elm_t s2SharesServ[N][N_SHARES_P_SERVER];
 
-    f_elm_t multMaskVal;
-    f_elm_t multMask[N_SHARES * N_SHARES];
-    f_elm_t multMaskServ[N][N_SHARES_P_SERVER * N_SHARES_P_SERVER];
+    f_elm_t(*multMaskServ)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
+        malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
 
-    f_elm_t aMaskServ[N][N_SHARES_P_SERVER * N_SHARES_P_SERVER];
-    f_elm_t bMaskServ[N][N_SHARES_P_SERVER * N_SHARES_P_SERVER];
-    f_elm_t rMaskServ[N][N_SHARES_P_SERVER * N_SHARES_P_SERVER];
+    f_elm_t (*aMaskServ)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER]=
+        malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+    f_elm_t (*bMaskServ)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER]=
+        malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+    f_elm_t (*rMaskServ)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER]=
+        malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
 
     f_elm_t(*hashes)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
         malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
@@ -216,38 +218,36 @@ int main()
         write_elm_arr(fileString, s2SharesServ[i], N_SHARES_P_SERVER);
     }
 
-    f_from_ui(multMaskVal, zero);
-    secretSharing(multMask, multMaskVal, N_SHARES * N_SHARES);
-    shareMultMask(multMaskServ, multMask, shareDistr, N, N_SHARES);
+    shareMultMaskN(multMaskServ, shareDistr, N, N_SHARES);
 
     for (int i = 0; i < N; i++)
     {
         snprintf(fileString, 30, "bin/mult_mask_%d.bin", i + 1);
-        write_elm_arr(fileString, multMaskServ[i], N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+        write_elm_arr(fileString, multMaskServ[i], N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
     }
 
-    shareElmMask(aMaskServ, shareDistr, shareCount, N, N_SHARES);
+    shareElmMaskN(aMaskServ, shareDistr, shareCount, N, N_SHARES);
 
     for (int i = 0; i < N; i++)
     {
         snprintf(fileString, 30, "bin/a_mask_%d.bin", i + 1);
-        write_elm_arr(fileString, aMaskServ[i], N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+        write_elm_arr(fileString, aMaskServ[i], N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
     }
 
-    shareElmMask(bMaskServ, shareDistr, shareCount, N, N_SHARES);
+    shareElmMaskN(bMaskServ, shareDistr, shareCount, N, N_SHARES);
 
     for (int i = 0; i < N; i++)
     {
         snprintf(fileString, 30, "bin/b_mask_%d.bin", i + 1);
-        write_elm_arr(fileString, bMaskServ[i], N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+        write_elm_arr(fileString, bMaskServ[i], N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
     }
 
-    shareElmMask(rMaskServ, shareDistr, shareCount, N, N_SHARES);
+    shareElmMaskN(rMaskServ, shareDistr, shareCount, N, N_SHARES);
 
     for (int i = 0; i < N; i++)
     {
         snprintf(fileString, 30, "bin/r_mask_%d.bin", i + 1);
-        write_elm_arr(fileString, rMaskServ[i], N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+        write_elm_arr(fileString, rMaskServ[i], N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
     }
 
     pthread_t threads[N];
@@ -342,6 +342,16 @@ int main()
         printf("\n");
     }
 
+    free(multMaskServ);
+    free(aMaskServ);
+    free(bMaskServ);
+    free(rMaskServ);
+
+    free(hashes);
+    free(mergedHashes);
+    free(resSharesServ);
+    free(expAggrRes);
+
     return 0;
 }
 
@@ -396,10 +406,15 @@ void *server_thread(void *arg)
     f_elm_t fractionMatrix[N_SHARES][N_SHARES];
     f_elm_t keyShares[N_BITS][N_SHARES_P_SERVER];
     f_elm_t s2Shares[N_SHARES_P_SERVER];
-    f_elm_t multMask[N_SHARES_P_SERVER * N_SHARES_P_SERVER];
-    f_elm_t aMask[N_SHARES_P_SERVER * N_SHARES_P_SERVER];
-    f_elm_t bMask[N_SHARES_P_SERVER * N_SHARES_P_SERVER];
-    f_elm_t rMask[N_SHARES_P_SERVER * N_SHARES_P_SERVER];
+
+    f_elm_t(*multMask)[N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
+        malloc(sizeof(f_elm_t) * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+    f_elm_t (*aMask)[N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
+        malloc(sizeof(f_elm_t) * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+    f_elm_t (*bMask)[N_SHARES_P_SERVER * N_SHARES_P_SERVER]=
+        malloc(sizeof(f_elm_t) * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+    f_elm_t (*rMask)[N_SHARES_P_SERVER * N_SHARES_P_SERVER]=
+        malloc(sizeof(f_elm_t) * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
 
     f_elm_t add_res[N_SHARES_P_SERVER];
 
@@ -435,16 +450,16 @@ void *server_thread(void *arg)
     read_elm_arr(fileString, s2Shares, N_SHARES_P_SERVER);
 
     snprintf(fileString, 30, "bin/mult_mask_%d.bin", server_id + 1);
-    read_elm_arr(fileString, multMask, N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+    read_elm_arr(fileString, multMask, N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
 
     snprintf(fileString, 30, "bin/a_mask_%d.bin", server_id + 1);
-    read_elm_arr(fileString, aMask, N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+    read_elm_arr(fileString, aMask, N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
 
     snprintf(fileString, 30, "bin/b_mask_%d.bin", server_id + 1);
-    read_elm_arr(fileString, bMask, N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+    read_elm_arr(fileString, bMask, N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
 
     snprintf(fileString, 30, "bin/r_mask_%d.bin", server_id + 1);
-    read_elm_arr(fileString, rMask, N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+    read_elm_arr(fileString, rMask, N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
 
     for (int r = 0; r < N_BITS; r++)
     {
@@ -468,7 +483,7 @@ void *server_thread(void *arg)
                 f_mul(a_mont, b_mont, ab_mont);
 
                 from_mont(ab_mont, ab);
-                f_add(ab, multMask[i * N_SHARES_P_SERVER + j], ab_r);
+                f_add(ab, multMask[r][i * N_SHARES_P_SERVER + j], ab_r);
 
                 shake128((unsigned char *)hashes[r][i * N_SHARES_P_SERVER + j], WORDS_FIELD * 8,
                          (unsigned char *)ab_r, WORDS_FIELD * 8);
@@ -477,19 +492,19 @@ void *server_thread(void *arg)
                 f_mul(fractionMatrix[ind_i][ind_j], ab_r_mont, f_ab_r_mont);
                 from_mont(f_ab_r_mont, f_ab_r);
 
-                to_mont(aMask[i * N_SHARES_P_SERVER + j], a_mask_mont);
+                to_mont(aMask[r][i * N_SHARES_P_SERVER + j], a_mask_mont);
                 f_mul(a_mont, a_mask_mont, aa_mask_mont);
                 from_mont(aa_mask_mont, aa_mask);
 
                 f_add(f_ab_r, aa_mask, f_ab_r_aa_mask);
 
-                to_mont(bMask[i * N_SHARES_P_SERVER + j], b_mask_mont);
+                to_mont(bMask[r][i * N_SHARES_P_SERVER + j], b_mask_mont);
                 f_mul(b_mont, b_mask_mont, bb_mask_mont);
                 from_mont(bb_mask_mont, bb_mask);
 
                 f_add(f_ab_r_aa_mask, bb_mask, f_ab_r_aa_mask_bb_mask);
 
-                f_add(f_ab_r_aa_mask_bb_mask, rMask[i * N_SHARES_P_SERVER + j], f_ab_r_aa_mask_bb_mask_r_mask);
+                f_add(f_ab_r_aa_mask_bb_mask, rMask[r][i * N_SHARES_P_SERVER + j], f_ab_r_aa_mask_bb_mask_r_mask);
 
                 f_copy(f_ab_r_aa_mask_bb_mask_r_mask, resShares[r][i * N_SHARES_P_SERVER + j]);
             }
@@ -504,6 +519,14 @@ void *server_thread(void *arg)
 
     close(client_sock);
     close(server_sock);
+
+    free(multMask);
+    free(aMask);
+    free(bMask);
+    free(rMask);
+
+    free(hashes);
+    free(resShares);
 
     pthread_exit(NULL);
 }
