@@ -7,6 +7,8 @@
 #define N 6
 #define N_SHARES 15
 #define N_SHARES_P_SERVER 10
+#define N_BITS 45
+#define N_TRANSMIT 4
 
 unsigned long long factorial(int num);
 
@@ -27,6 +29,9 @@ void secretOpening(f_elm_t share[], f_elm_t secret, int n_shares);
 void secretSharingServers(f_elm_t sharesServer[][N_SHARES_P_SERVER], f_elm_t shares[],
                           int shareMap[][N_SHARES_P_SERVER], int n, int n_shares_p_server);
 
+void keySharingServersN(f_elm_t sharesServer[][N_BITS][N_SHARES_P_SERVER], f_elm_t keys[],
+                        int shareMap[][N_SHARES_P_SERVER], int n, int n_shares_p_server);
+
 void generateFractions(f_elm_t fractionMatrix[][N_SHARES], int shareCount[][N_SHARES], int n_shares);
 
 void shareMultMask(f_elm_t multMaskServ[][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
@@ -35,13 +40,16 @@ void shareMultMask(f_elm_t multMaskServ[][N_SHARES_P_SERVER * N_SHARES_P_SERVER]
 void shareElmMask(f_elm_t elmMaskServ[][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
                   int shareDistr[][N_SHARES], int shareCount[][N_SHARES], int n, int n_shares);
 
-void expandAggregateRes(f_elm_t resServ[][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
-                        f_elm_t expAggrRes[], int shareDistr[][N_SHARES], int n, int n_shares);
+void expandAggregateResN(f_elm_t resServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
+                         f_elm_t expAggrRes[][N_SHARES * N_SHARES], int shareDistr[][N_SHARES],
+                         int n, int n_bits, int n_shares);
 
-void aggregateVector(f_elm_t expAggrRes[], f_elm_t res, int n_shares);
+void aggregateVectorN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t res[], int n_bits, int n_shares);
 
-void mergeHashes(f_elm_t hashes[][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
-                 f_elm_t mergedHashes[], int shareDistr[][N_SHARES], int n, int n_shares);
+void mergeHashesN(f_elm_t hashes[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
+                  f_elm_t mergedHashes[][N_SHARES * N_SHARES], int shareDistr[][N_SHARES],
+                  int n, int n_bits, int n_shares);
 
-void compareHashes(f_elm_t expAggrRes[], f_elm_t mergedHashes[], int checkHash[], int n_shares);
+void compareHashesN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t mergedHashes[][N_SHARES * N_SHARES],
+                    int checkHash[][N_SHARES * N_SHARES], int n_bits, int n_shares);
 #endif

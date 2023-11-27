@@ -136,8 +136,8 @@ int main()
     int shareCount[N_SHARES][N_SHARES] = {0};
     int shareMap[N][N_SHARES_P_SERVER] = {0};
 
-    uint64_t sec_val = 5;
-    uint64_t key_val = 4;
+    uint64_t sec_val = 1;
+    uint64_t key_val = 1;
     uint64_t s2_val = 9;
     uint64_t zero = 0;
 
@@ -149,9 +149,8 @@ int main()
     f_elm_t secretShares[N_SHARES];
     f_elm_t secretSharesServ[N][N_SHARES_P_SERVER];
 
-    f_elm_t key;
-    f_elm_t keyShares[N_SHARES];
-    f_elm_t keySharesServ[N][N_SHARES_P_SERVER];
+    f_elm_t keys[N_BITS];
+    f_elm_t keySharesServ[N][N_BITS][N_SHARES_P_SERVER];
 
     f_elm_t s2;
     f_elm_t s2Shares[N_SHARES];
@@ -165,18 +164,18 @@ int main()
     f_elm_t bMaskServ[N][N_SHARES_P_SERVER * N_SHARES_P_SERVER];
     f_elm_t rMaskServ[N][N_SHARES_P_SERVER * N_SHARES_P_SERVER];
 
-    f_elm_t hashes[N][N_SHARES_P_SERVER * N_SHARES_P_SERVER];
-    f_elm_t mergedHashes[N_SHARES * N_SHARES];
-    int checkHash[N_SHARES * N_SHARES];
+    f_elm_t(*hashes)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
+        malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+    f_elm_t(*mergedHashes)[N_SHARES * N_SHARES] =
+        malloc(sizeof(f_elm_t) * N_BITS * N_SHARES * N_SHARES);
+    int checkHash[N_BITS][N_SHARES * N_SHARES];
     int hashesPass;
 
-    f_elm_t resSharesServ[N][N_SHARES_P_SERVER * N_SHARES_P_SERVER];
-    f_elm_t expAggrRes[N_SHARES * N_SHARES];
-    f_elm_t res;
-
-    f_elm_t received_shares[N];
-    f_elm_t agg_res_1;
-    f_elm_t agg_res_2;
+    f_elm_t(*resSharesServ)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
+        malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+    f_elm_t(*expAggrRes)[N_SHARES * N_SHARES] =
+        malloc(sizeof(f_elm_t) * N_BITS * N_SHARES * N_SHARES);
+    f_elm_t res[N_BITS];
 
     generateTuples(set, tuple, tuples, N, t, 0, 0, &totalTuples);
     shareDistribution(shareDistr, tuples, N, N_SHARES);
@@ -194,14 +193,17 @@ int main()
     secretSharing(secretShares, secret, N_SHARES);
     secretSharingServers(secretSharesServ, secretShares, shareMap, N, N_SHARES_P_SERVER);
 
-    f_from_ui(key, key_val);
-    secretSharing(keyShares, key, N_SHARES);
-    secretSharingServers(keySharesServ, keyShares, shareMap, N, N_SHARES_P_SERVER);
+    for (int i = 0; i < N_BITS; i++)
+    {
+        f_from_ui(keys[i], key_val);
+        key_val += 1;
+    }
+    keySharingServersN(keySharesServ, keys, shareMap, N, N_SHARES_P_SERVER);
 
     for (int i = 0; i < N; i++)
     {
         snprintf(fileString, 30, "bin/key_%d.bin", i + 1);
-        write_elm_arr(fileString, keySharesServ[i], N_SHARES_P_SERVER);
+        write_elm_arr(fileString, keySharesServ[i], N_BITS * N_SHARES_P_SERVER);
     }
 
     f_from_ui(s2, s2_val);
@@ -261,7 +263,7 @@ int main()
         }
     }
 
-    sleep(5);
+    sleep(4);
 
     struct sockaddr_in server_addr;
     int client_sock;
@@ -288,11 +290,14 @@ int main()
 
         send(client_sock, secretSharesServ[i], sizeof(f_elm_t) * N_SHARES_P_SERVER, 0);
 
-        ssize_t bytes_received_1 = recv(client_sock, resSharesServ[i],
-                                        sizeof(f_elm_t) * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
+        for (int r = 0; r < (N_BITS / N_TRANSMIT); r++)
+        {
+            ssize_t bytes_received_1 = recv(client_sock, resSharesServ[i][r * N_TRANSMIT],
+                                            sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
 
-        ssize_t bytes_received_2 = recv(client_sock, hashes[i],
-                                        sizeof(f_elm_t) * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
+            ssize_t bytes_received_2 = recv(client_sock, hashes[i][r * N_TRANSMIT],
+                                            sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
+        }
 
         close(client_sock);
     }
@@ -302,24 +307,40 @@ int main()
         pthread_join(threads[i], NULL);
     }
 
-    expandAggregateRes(resSharesServ, expAggrRes, shareDistr, N, N_SHARES);
-    
-    mergeHashes(hashes, mergedHashes, shareDistr, N, N_SHARES);
-    compareHashes(expAggrRes, mergedHashes, checkHash, N_SHARES * N_SHARES);
+    // for (int r = 0; r < N_BITS; r++)
+    // {
+    //     for (int j = 0; j < 4; j++)
+    //     {
+    //         print_f_elm_l(resSharesServ[0][r][j]);
+    //     }
+    //     printf("\n");
+    // }
+
+    expandAggregateResN(resSharesServ, expAggrRes, shareDistr, N, N_BITS, N_SHARES);
+
+    mergeHashesN(hashes, mergedHashes, shareDistr, N, N_BITS, N_SHARES);
+    compareHashesN(expAggrRes, mergedHashes, checkHash, N_BITS, N_SHARES * N_SHARES);
 
     hashesPass = 1;
-    for(int i = 0; i < (N_SHARES * N_SHARES); i++)
+    for (int r = 0; r < N_BITS; r++)
     {
-        if(checkHash[i] == 0)
+        for (int i = 0; i < (N_SHARES * N_SHARES); i++)
         {
-            hashesPass = 0;
+            if (checkHash[r][i] == 0)
+            {
+                hashesPass = 0;
+            }
         }
     }
-    (hashesPass == 1) ? printf("All hashes pass!\n") : printf("Error in hashes");
-    
+    (hashesPass == 1) ? printf("All hashes pass!\n") : printf("Error in hashes\n");
 
-    aggregateVector(expAggrRes, res, N_SHARES * N_SHARES);
-    print_f_elm(res);
+    aggregateVectorN(expAggrRes, res, N_BITS, N_SHARES * N_SHARES);
+    for (int i = 0; i < N_BITS; i++)
+    {
+        printf("%03d: ", i);
+        print_f_elm_l(res[i]);
+        printf("\n");
+    }
 
     return 0;
 }
@@ -373,7 +394,7 @@ void *server_thread(void *arg)
     uint64_t zero = 0;
 
     f_elm_t fractionMatrix[N_SHARES][N_SHARES];
-    f_elm_t keyShares[N_SHARES_P_SERVER];
+    f_elm_t keyShares[N_BITS][N_SHARES_P_SERVER];
     f_elm_t s2Shares[N_SHARES_P_SERVER];
     f_elm_t multMask[N_SHARES_P_SERVER * N_SHARES_P_SERVER];
     f_elm_t aMask[N_SHARES_P_SERVER * N_SHARES_P_SERVER];
@@ -396,9 +417,10 @@ void *server_thread(void *arg)
     f_elm_t f_ab_r_aa_mask_bb_mask;
     f_elm_t f_ab_r_aa_mask_bb_mask_r_mask;
 
-    f_elm_t hashes[N_SHARES_P_SERVER * N_SHARES_P_SERVER];
-
-    f_elm_t resShares[N_SHARES_P_SERVER * N_SHARES_P_SERVER];
+    f_elm_t(*hashes)[N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
+        malloc(sizeof(f_elm_t) * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+    f_elm_t(*resShares)[N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
+        malloc(sizeof(f_elm_t) * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
 
     strcpy(fileString, "bin/fractionMatrix.bin");
     read_elm_arr(fileString, fractionMatrix, N_SHARES * N_SHARES);
@@ -407,7 +429,7 @@ void *server_thread(void *arg)
     read_int_arr(fileString, shareMap, N * N_SHARES_P_SERVER);
 
     snprintf(fileString, 30, "bin/key_%d.bin", server_id + 1);
-    read_elm_arr(fileString, keyShares, N_SHARES_P_SERVER);
+    read_elm_arr(fileString, keyShares, N_BITS * N_SHARES_P_SERVER);
 
     snprintf(fileString, 30, "bin/s2_%d.bin", server_id + 1);
     read_elm_arr(fileString, s2Shares, N_SHARES_P_SERVER);
@@ -424,55 +446,61 @@ void *server_thread(void *arg)
     snprintf(fileString, 30, "bin/r_mask_%d.bin", server_id + 1);
     read_elm_arr(fileString, rMask, N_SHARES_P_SERVER * N_SHARES_P_SERVER);
 
-    for (int i = 0; i < N_SHARES_P_SERVER; i++)
+    for (int r = 0; r < N_BITS; r++)
     {
-        f_add(secretShares[i], keyShares[i], add_res[i]);
-    }
-
-    for (int i = 0; i < N_SHARES_P_SERVER; i++)
-    {
-        for (int j = 0; j < N_SHARES_P_SERVER; j++)
+        for (int i = 0; i < N_SHARES_P_SERVER; i++)
         {
-            ind_i = shareMap[server_id][i] - 1;
-            ind_j = shareMap[server_id][j] - 1;
+            f_add(secretShares[i], keyShares[r][i], add_res[i]);
+        }
 
-            f_copy(add_res[i], a);
-            f_copy(s2Shares[j], b);
+        for (int i = 0; i < N_SHARES_P_SERVER; i++)
+        {
+            for (int j = 0; j < N_SHARES_P_SERVER; j++)
+            {
+                ind_i = shareMap[server_id][i] - 1;
+                ind_j = shareMap[server_id][j] - 1;
 
-            to_mont(a, a_mont);
-            to_mont(b, b_mont);
-            f_mul(a_mont, b_mont, ab_mont);
+                f_copy(add_res[i], a);
+                f_copy(s2Shares[j], b);
 
-            from_mont(ab_mont, ab);
-            f_add(ab, multMask[i * N_SHARES_P_SERVER + j], ab_r);
+                to_mont(a, a_mont);
+                to_mont(b, b_mont);
+                f_mul(a_mont, b_mont, ab_mont);
 
-            shake128((unsigned char *) hashes[i * N_SHARES_P_SERVER + j], WORDS_FIELD * 8,
-                     (unsigned char *) ab_r, WORDS_FIELD * 8);
+                from_mont(ab_mont, ab);
+                f_add(ab, multMask[i * N_SHARES_P_SERVER + j], ab_r);
 
-            to_mont(ab_r, ab_r_mont);
-            f_mul(fractionMatrix[ind_i][ind_j], ab_r_mont, f_ab_r_mont);
-            from_mont(f_ab_r_mont, f_ab_r);
+                shake128((unsigned char *)hashes[r][i * N_SHARES_P_SERVER + j], WORDS_FIELD * 8,
+                         (unsigned char *)ab_r, WORDS_FIELD * 8);
 
-            to_mont(aMask[i * N_SHARES_P_SERVER + j], a_mask_mont);
-            f_mul(a_mont, a_mask_mont, aa_mask_mont);
-            from_mont(aa_mask_mont, aa_mask);
+                to_mont(ab_r, ab_r_mont);
+                f_mul(fractionMatrix[ind_i][ind_j], ab_r_mont, f_ab_r_mont);
+                from_mont(f_ab_r_mont, f_ab_r);
 
-            f_add(f_ab_r, aa_mask, f_ab_r_aa_mask);
+                to_mont(aMask[i * N_SHARES_P_SERVER + j], a_mask_mont);
+                f_mul(a_mont, a_mask_mont, aa_mask_mont);
+                from_mont(aa_mask_mont, aa_mask);
 
-            to_mont(bMask[i * N_SHARES_P_SERVER + j], b_mask_mont);
-            f_mul(b_mont, b_mask_mont, bb_mask_mont);
-            from_mont(bb_mask_mont, bb_mask);
+                f_add(f_ab_r, aa_mask, f_ab_r_aa_mask);
 
-            f_add(f_ab_r_aa_mask, bb_mask, f_ab_r_aa_mask_bb_mask);
+                to_mont(bMask[i * N_SHARES_P_SERVER + j], b_mask_mont);
+                f_mul(b_mont, b_mask_mont, bb_mask_mont);
+                from_mont(bb_mask_mont, bb_mask);
 
-            f_add(f_ab_r_aa_mask_bb_mask, rMask[i * N_SHARES_P_SERVER + j], f_ab_r_aa_mask_bb_mask_r_mask);
+                f_add(f_ab_r_aa_mask, bb_mask, f_ab_r_aa_mask_bb_mask);
 
-            f_copy(f_ab_r, resShares[i * N_SHARES_P_SERVER + j]);
+                f_add(f_ab_r_aa_mask_bb_mask, rMask[i * N_SHARES_P_SERVER + j], f_ab_r_aa_mask_bb_mask_r_mask);
+
+                f_copy(f_ab_r_aa_mask_bb_mask_r_mask, resShares[r][i * N_SHARES_P_SERVER + j]);
+            }
         }
     }
 
-    send(client_sock, resShares, sizeof(f_elm_t) * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
-    send(client_sock, hashes, sizeof(f_elm_t) * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
+    for (int r = 0; r < (N_BITS / N_TRANSMIT); r++)
+    {
+        send(client_sock, resShares[r], sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
+        send(client_sock, hashes[r], sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
+    }
 
     close(client_sock);
     close(server_sock);

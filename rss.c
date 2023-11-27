@@ -1,9 +1,9 @@
 #include <string.h>
+#include <stdio.h>
 
 #include "rss.h"
 #include "arith.h"
 #include "fips202.h"
-
 
 unsigned long long factorial(int num)
 {
@@ -161,6 +161,26 @@ void secretSharingServers(f_elm_t sharesServer[][N_SHARES_P_SERVER], f_elm_t sha
     }
 }
 
+void keySharingServersN(f_elm_t sharesServer[][N_BITS][N_SHARES_P_SERVER], f_elm_t keys[],
+                        int shareMap[][N_SHARES_P_SERVER], int n, int n_shares_p_server)
+{
+    int ind;
+    f_elm_t shares[N_SHARES];
+
+    for (int r = 0; r < N_BITS; r++)
+    {
+        secretSharing(shares, keys[r], N_SHARES);
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n_shares_p_server; j++)
+            {
+                ind = shareMap[i][j];
+                f_copy(shares[ind - 1], sharesServer[i][r][j]);
+            }
+        }
+    }
+}
+
 void generateFractions(f_elm_t fractionMatrix[][N_SHARES], int shareCount[][N_SHARES], int n_shares)
 {
     uint64_t one = 1;
@@ -234,8 +254,9 @@ void shareElmMask(f_elm_t elmMaskServ[][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
     }
 }
 
-void expandAggregateRes(f_elm_t resServ[][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
-                        f_elm_t expAggrRes[], int shareDistr[][N_SHARES], int n, int n_shares)
+void expandAggregateResN(f_elm_t resServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
+                         f_elm_t expAggrRes[][N_SHARES * N_SHARES], int shareDistr[][N_SHARES],
+                         int n, int n_bits, int n_shares)
 {
     int servInd[n];
     memset(servInd, 0, sizeof(servInd));
@@ -244,7 +265,8 @@ void expandAggregateRes(f_elm_t resServ[][N_SHARES_P_SERVER * N_SHARES_P_SERVER]
     f_elm_t zero;
     f_from_ui(zero, zero_ui);
 
-    f_elm_t expRes[n][n_shares * n_shares];
+    f_elm_t (*expRes)[n][n_shares * n_shares] = 
+        malloc(sizeof(f_elm_t) * N_BITS * N * N_SHARES * N_SHARES);
     f_elm_t sum_1;
     f_elm_t sum_2;
 
@@ -256,31 +278,40 @@ void expandAggregateRes(f_elm_t resServ[][N_SHARES_P_SERVER * N_SHARES_P_SERVER]
             {
                 if ((shareDistr[k][i] == 1) && (shareDistr[k][j] == 1))
                 {
-                    f_copy(resServ[k][servInd[k]], expRes[k][i * n_shares + j]);
+                    for (int r = 0; r < n_bits; r++)
+                    {
+                        f_copy(resServ[k][r][servInd[k]], expRes[r][k][i * n_shares + j]);
+                    }
                     servInd[k] += 1;
                 }
                 else
                 {
-                    f_copy(zero, expRes[k][i * n_shares + j]);
+                    for (int r = 0; r < n_bits; r++)
+                    {
+                        f_copy(zero, expRes[r][k][i * n_shares + j]);
+                    }
                 }
             }
         }
     }
 
-    for (int i = 0; i < (n_shares * n_shares); i++)
+    for (int r = 0; r < n_bits; r++)
     {
-        f_copy(zero, sum_1);
-        for (int j = 0; j < n; j++)
+        for (int i = 0; i < (n_shares * n_shares); i++)
         {
-            f_add(expRes[j][i], sum_1, sum_2);
-            f_copy(sum_2, sum_1);
-        }
+            f_copy(zero, sum_1);
+            for (int j = 0; j < n; j++)
+            {
+                f_add(expRes[r][j][i], sum_1, sum_2);
+                f_copy(sum_2, sum_1);
+            }
 
-        f_copy(sum_2, expAggrRes[i]);
+            f_copy(sum_2, expAggrRes[r][i]);
+        }
     }
 }
 
-void aggregateVector(f_elm_t expAggrRes[], f_elm_t res, int n_shares)
+void aggregateVectorN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t res[], int n_bits, int n_shares)
 {
     f_elm_t sum_1, sum_2;
 
@@ -288,17 +319,21 @@ void aggregateVector(f_elm_t expAggrRes[], f_elm_t res, int n_shares)
     f_elm_t zero;
     f_from_ui(zero, zero_ui);
 
-    f_copy(zero, sum_1);
-    for (int i = 0; i < n_shares; i++)
+    for (int r = 0; r < n_bits; r++)
     {
-        f_add(expAggrRes[i], sum_1, sum_2);
-        f_copy(sum_2, sum_1);
+        f_copy(zero, sum_1);
+        for (int i = 0; i < n_shares; i++)
+        {
+            f_add(expAggrRes[r][i], sum_1, sum_2);
+            f_copy(sum_2, sum_1);
+        }
+        f_copy(sum_2, res[r]);
     }
-    f_copy(sum_2, res);
 }
 
-void mergeHashes(f_elm_t hashes[][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
-                 f_elm_t mergedHashes[], int shareDistr[][N_SHARES], int n, int n_shares)
+void mergeHashesN(f_elm_t hashes[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
+                  f_elm_t mergedHashes[][N_SHARES * N_SHARES], int shareDistr[][N_SHARES],
+                  int n, int n_bits, int n_shares)
 {
     int servInd[n];
     memset(servInd, 0, sizeof(servInd));
@@ -311,7 +346,10 @@ void mergeHashes(f_elm_t hashes[][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
             {
                 if ((shareDistr[k][i] == 1) && (shareDistr[k][j] == 1))
                 {
-                    f_copy(hashes[k][servInd[k]], mergedHashes[i * N_SHARES + j]);
+                    for (int r = 0; r < n_bits; r++)
+                    {
+                        f_copy(hashes[k][r][servInd[k]], mergedHashes[r][i * N_SHARES + j]);
+                    }
                     servInd[k] += 1;
                 }
             }
@@ -319,28 +357,32 @@ void mergeHashes(f_elm_t hashes[][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
     }
 }
 
-void compareHashes(f_elm_t expAggrRes[], f_elm_t mergedHashes[], int checkHash[], int n_shares)
+void compareHashesN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t mergedHashes[][N_SHARES * N_SHARES],
+                    int checkHash[][N_SHARES * N_SHARES], int n_bits, int n_shares)
 {
     f_elm_t curr_hash;
     char *ptr1, *ptr2;
     int equal;
 
-    for (int i = 0; i < n_shares; i++)
+    for (int r = 0; r < n_bits; r++)
     {
-        shake128((unsigned char *) curr_hash, WORDS_FIELD * 8,
-                 (unsigned char *) expAggrRes[i], WORDS_FIELD * 8);
-
-        equal = 1;
-        ptr1 = (unsigned char *)curr_hash;
-        ptr2 = (unsigned char *)mergedHashes[i];
-        for (int j = 0; j < 8; ++j)
+        for (int i = 0; i < n_shares; i++)
         {
-            if (ptr1[j] != ptr2[j])
+            shake128((unsigned char *)curr_hash, WORDS_FIELD * 8,
+                     (unsigned char *)expAggrRes[r][i], WORDS_FIELD * 8);
+
+            equal = 1;
+            ptr1 = (unsigned char *)curr_hash;
+            ptr2 = (unsigned char *)mergedHashes[r][i];
+            for (int j = 0; j < 8; ++j)
             {
-                equal = 0; // Set to 0 if elements are not equal
-                break;     // No need to continue checking
+                if (ptr1[j] != ptr2[j])
+                {
+                    equal = 0; // Set to 0 if elements are not equal
+                    break;     // No need to continue checking
+                }
             }
+            checkHash[r][i] = equal;
         }
-        checkHash[i] = equal;
     }
 }
