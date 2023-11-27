@@ -7,7 +7,7 @@
 #define N 6
 #define N_SHARES 15
 #define N_SHARES_P_SERVER 10
-#define N_BITS 4
+#define N_BITS 45
 #define N_TRANSMIT 1
 
 unsigned long long factorial(int num);

@@ -337,7 +337,7 @@ int main()
     aggregateVectorN(expAggrRes, res, N_BITS, N_SHARES * N_SHARES);
     for (int i = 0; i < N_BITS; i++)
     {
-        printf("%03d: ", i);
+        printf("%03d: ", i + 1);
         print_f_elm_l(res[i]);
         printf("\n");
     }
