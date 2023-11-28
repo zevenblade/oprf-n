@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 #include "arith.h"
@@ -54,11 +55,11 @@ int main()
     f_elm_t(*multMaskServ)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
         malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
 
-    f_elm_t (*aMaskServ)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER]=
+    f_elm_t(*aMaskServ)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
         malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
-    f_elm_t (*bMaskServ)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER]=
+    f_elm_t(*bMaskServ)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
         malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
-    f_elm_t (*rMaskServ)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER]=
+    f_elm_t(*rMaskServ)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
         malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
 
     f_elm_t(*hashes)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
@@ -176,6 +177,9 @@ int main()
         server_addr.sin_port = htons(PORT + i);
         server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
+        // int flags = fcntl(client_sock, F_GETFL, 0);
+        // fcntl(client_sock, F_SETFL, flags & ~O_NONBLOCK);
+
         if (connect(client_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
         {
             perror("Error connecting to server");
@@ -189,7 +193,7 @@ int main()
         {
             ssize_t bytes_received_1 = recv(client_sock, resSharesServ[i][r * N_TRANSMIT],
                                             sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
-            
+
             ssize_t bytes_received_2 = recv(client_sock, hashes[i][r * N_TRANSMIT],
                                             sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
         }
@@ -207,7 +211,7 @@ int main()
     mergeHashesN(hashes, mergedHashes, shareDistr);
     compareHashesN(expAggrRes, mergedHashes, checkHash);
     checkHashesN(checkHash);
-    
+
     aggregateVectorN(expAggrRes, res);
     printResN(res);
 
@@ -241,10 +245,6 @@ void *server_thread(void *arg)
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT + server_id);
     server_addr.sin_addr.s_addr = INADDR_ANY;
-
-    int flags = fcntl(server_sock, F_GETFL, 0);
-    fcntl(server_sock, F_SETFL, flags & ~O_NONBLOCK);
-
 
     if (bind(server_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
     {
@@ -282,11 +282,11 @@ void *server_thread(void *arg)
 
     f_elm_t(*multMask)[N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
         malloc(sizeof(f_elm_t) * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
-    f_elm_t (*aMask)[N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
+    f_elm_t(*aMask)[N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
         malloc(sizeof(f_elm_t) * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
-    f_elm_t (*bMask)[N_SHARES_P_SERVER * N_SHARES_P_SERVER]=
+    f_elm_t(*bMask)[N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
         malloc(sizeof(f_elm_t) * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
-    f_elm_t (*rMask)[N_SHARES_P_SERVER * N_SHARES_P_SERVER]=
+    f_elm_t(*rMask)[N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
         malloc(sizeof(f_elm_t) * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
 
     f_elm_t add_res[N_SHARES_P_SERVER];
@@ -387,9 +387,12 @@ void *server_thread(void *arg)
     for (int r = 0; r < (N_BITS / N_TRANSMIT); r++)
     {
         send(client_sock, resShares[r * N_TRANSMIT], sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
-        usleep(500);
+        usleep(200000);
+        // usleep(500);
+
         send(client_sock, hashes[r * N_TRANSMIT], sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
-        usleep(500);
+        usleep(200000);
+        // usleep(500);
     }
 
     close(client_sock);
