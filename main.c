@@ -15,6 +15,15 @@
 #define PORT 8000
 #define SERVER_IP "127.0.0.1"
 
+struct ReceiverData
+{
+    int id;
+    f_elm_t secretShares[N_SHARES_P_SERVER];
+    f_elm_t receivedShares[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER];
+    f_elm_t hashes[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER];
+};
+
+void *receiver_function(void *arg);
 void *server_thread(void *arg);
 
 int main()
@@ -146,13 +155,13 @@ int main()
         write_elm_arr(fileString, rMaskServ[i], N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
     }
 
-    pthread_t threads[N];
+    pthread_t server_threads[N];
     int server_ids[N];
 
     for (int i = 0; i < N; ++i)
     {
         server_ids[i] = i;
-        if (pthread_create(&threads[i], NULL, server_thread, &server_ids[i]) != 0)
+        if (pthread_create(&server_threads[i], NULL, server_thread, &server_ids[i]) != 0)
         {
             perror("Error creating thread");
             exit(EXIT_FAILURE);
@@ -161,49 +170,43 @@ int main()
 
     sleep(3);
 
-    struct sockaddr_in server_addr;
-    int client_sock;
+    pthread_t receiver_threads[N];
+    struct ReceiverData receiver_data[N];
+
+    for (int i = 0; i < N; ++i) {
+        receiver_data[i].id = i;
+
+        for(int j = 0; j < N_SHARES_P_SERVER; j++)
+        {
+            f_copy(secretSharesServ[i][j], receiver_data[i].secretShares[j]);
+        }
+
+        if (pthread_create(&receiver_threads[i], NULL, receiver_function, (void *)&receiver_data[i]) != 0) {
+            perror("Error creating thread");
+            exit(EXIT_FAILURE);
+        }
+    }
 
     for (int i = 0; i < N; ++i)
     {
-        client_sock = socket(AF_INET, SOCK_STREAM, 0);
-        if (client_sock == -1)
-        {
-            perror("Error creating socket");
-            exit(EXIT_FAILURE);
-        }
-
-        server_addr.sin_family = AF_INET;
-        server_addr.sin_port = htons(PORT + i);
-        server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-
-        // int flags = fcntl(client_sock, F_GETFL, 0);
-        // fcntl(client_sock, F_SETFL, flags & ~O_NONBLOCK);
-
-        if (connect(client_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
-        {
-            perror("Error connecting to server");
-            close(client_sock);
-            exit(EXIT_FAILURE);
-        }
-
-        send(client_sock, secretSharesServ[i], sizeof(f_elm_t) * N_SHARES_P_SERVER, 0);
-
-        for (int r = 0; r < (N_BITS / N_TRANSMIT); r++)
-        {
-            ssize_t bytes_received_1 = recv(client_sock, resSharesServ[i][r * N_TRANSMIT],
-                                            sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
-
-            ssize_t bytes_received_2 = recv(client_sock, hashes[i][r * N_TRANSMIT],
-                                            sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
-        }
-
-        close(client_sock);
+        pthread_join(server_threads[i], NULL);
     }
 
-    for (int i = 0; i < 1; ++i)
+    for (int i = 0; i < N; ++i) 
     {
-        pthread_join(threads[i], NULL);
+        pthread_join(receiver_threads[i], NULL);    
+    }
+
+    for(int i = 0; i < N; i++)
+    {
+        for(int j = 0; j < N_BITS; j++)
+        {
+            for(int k = 0; k < (N_SHARES_P_SERVER * N_SHARES_P_SERVER); k++)
+            {
+                f_copy(receiver_data[i].receivedShares[j][k], resSharesServ[i][j][k]);
+                f_copy(receiver_data[i].hashes[j][k], hashes[i][j][k]);
+            }
+        }
     }
 
     aggregateResN(resSharesServ, expAggrRes, shareDistr);
@@ -387,10 +390,12 @@ void *server_thread(void *arg)
     for (int r = 0; r < (N_BITS / N_TRANSMIT); r++)
     {
         send(client_sock, resShares[r * N_TRANSMIT], sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
+        // usleep(200000);
         usleep(200000);
-        // usleep(500);
+        //usleep(500);
 
         send(client_sock, hashes[r * N_TRANSMIT], sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
+        // usleep(200000);
         usleep(200000);
         // usleep(500);
     }
@@ -407,4 +412,48 @@ void *server_thread(void *arg)
     free(resShares);
 
     pthread_exit(NULL);
+}
+
+void *receiver_function(void *arg)
+{
+    struct ReceiverData *data = (struct ReceiverData *)arg;
+    int id = data->id;
+    f_elm_t *secretShares = data->secretShares;
+    f_elm_t (*resSharesServ)[N_SHARES_P_SERVER * N_SHARES_P_SERVER] = data->receivedShares;
+    f_elm_t (*hashes)[N_SHARES_P_SERVER * N_SHARES_P_SERVER] = data->hashes;
+
+    struct sockaddr_in server_addr;
+    int client_sock;
+
+    client_sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (client_sock == -1)
+    {
+        perror("Error creating socket");
+        exit(EXIT_FAILURE);
+    }
+
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(PORT + id);
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    if (connect(client_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+    {
+        perror("Error connecting to server");
+        close(client_sock);
+        exit(EXIT_FAILURE);
+    }
+
+    send(client_sock, secretShares, sizeof(f_elm_t) * N_SHARES_P_SERVER, 0);
+
+    for (int r = 0; r < (N_BITS / N_TRANSMIT); r++)
+    {
+        ssize_t bytes_received_1 = recv(client_sock, resSharesServ[r * N_TRANSMIT],
+                                        sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
+
+        ssize_t bytes_received_2 = recv(client_sock, hashes[r * N_TRANSMIT],
+                                        sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
+    }
+
+    close(client_sock);
+    return NULL;
 }
