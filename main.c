@@ -390,13 +390,13 @@ void *server_thread(void *arg)
     for (int r = 0; r < (N_BITS / N_TRANSMIT); r++)
     {
         send(client_sock, resShares[r * N_TRANSMIT], sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
+        usleep(500000);
         // usleep(200000);
-        usleep(200000);
         //usleep(500);
 
         send(client_sock, hashes[r * N_TRANSMIT], sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
+        usleep(500000);
         // usleep(200000);
-        usleep(200000);
         // usleep(500);
     }
 
