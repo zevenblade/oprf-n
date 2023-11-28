@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include "arith.h"
 #include "rss.h"
@@ -17,112 +18,6 @@ void *server_thread(void *arg);
 
 int main()
 {
-    // printf("C(%d, %d) = %llu\n", 2, 1, binomialCoefficient(2, 1));
-
-    // printf("Generated tuples of size %d:\n", t);
-    // generateTuples(set, tuple, tuples, N, t, 0, 0, &totalTuples);
-
-    // Print stored tuples
-    // for (int i = 0; i < totalTuples; i++) {
-    //     printf("(");
-    //     for (int j = 0; j < t; j++) {
-    //         printf("%d", tuples[i][j]);
-    //         if (j < t - 1) {
-    //             printf(", ");
-    //         }
-    //     }
-    //     printf(")\n");
-    // }
-
-    // Print stored tuples
-    // printf("Share distribution matrix\n");
-    // shareDistribution(shareDistr, tuples, N, N_SHARES);
-    // for (int i = 0; i < N_SHARES; i++) {
-    //     printf("(");
-    //     for (int j = 0; j < N; j++) {
-    //         printf("%d ", shareDistr[j][i]);
-    //     }
-    //     printf(")\n");
-    // }
-
-    // printf("Share count matrix\n");
-    // shareCounting(shareCount, shareDistr, N, N_SHARES);
-    // for (int i = 0; i < N_SHARES; i++) {
-    //     printf("(");
-    //     for (int j = 0; j < N_SHARES; j++) {
-    //         printf("%d ", shareCount[i][j]);
-    //     }
-    //     printf(")\n");
-    // }
-
-    // printf("Share mapping matrix\n");
-    // shareMapping(shareMap, shareDistr, N, N_SHARES);
-    // for (int i = 0; i < N; i++) {
-    //     printf("(");
-    //     for (int j = 0; j < N_SHARES_P_SERVER; j++) {
-    //         printf("%d ", shareMap[i][j]);
-    //     }
-    //     printf(")\n");
-    // }
-
-    // printf("Secret : ");
-    // f_from_ui(secret, sec_val);
-    // print_f_elm(secret);
-    // printf("\n");
-
-    // printf("Secret shares : \n");
-    // secretSharing(secretShares, secret, N_SHARES);
-    // for(int i = 0; i < N_SHARES; i++){
-    //     printf("Share %02d ; ", i+1);
-    //     print_f_elm(secretShares[i]);
-    // }
-    // printf("\n");
-
-    // printf("Recovered secret : ");
-    // secretOpening(secretShares, rec_secret, N_SHARES);
-    // print_f_elm(rec_secret);
-    // printf("\n");
-
-    // printf("Server secret shares: \n");
-    // secretSharingServers(secretSharesServ, secretShares, shareMap, N, N_SHARES_P_SERVER);
-    // for(int i = 0; i < N; i++){
-    //     for(int j = 0; j < N_SHARES_P_SERVER; j++){
-    //         print_f_elm(secretSharesServ[i][j]);
-    //     }
-    //     printf("\n");
-    // }
-
-    // printf("Fraction matrix check \n");
-    // generateFractions(fractionMatrix, shareCount, N_SHARES);
-    // for (int i = 0; i < N_SHARES; i++)
-    // {
-    //     for (int j = 0; j < N_SHARES; j++)
-    //     {
-    //         f_from_ui(tmp_elm, shareCount[i][j]);
-    //         to_mont(tmp_elm, shareCountMont[i][j]);
-    //         f_mul(fractionMatrix[i][j], shareCountMont[i][j], checkMatrix[i][j]);
-    //         from_mont(checkMatrix[i][j], res_tmp);
-    //         print_f_elm(res_tmp);
-    //     }
-    //     printf("\n");
-    // }
-
-    // f_from_ui(key, key_val);
-    // secretSharing(keyShares, key, N_SHARES);
-    // secretSharingServers(keySharesServ, keyShares, shareMap, N, N_SHARES_P_SERVER);
-
-    // f_from_ui(s2, s2_val);
-    // secretSharing(s2Shares, s2, N_SHARES);
-    // secretSharingServers(s2SharesServ, s2Shares, shareMap, N, N_SHARES_P_SERVER);
-
-    // for (int i = 0; i < N; i++)
-    // {
-    //     for(int j = 0; j < N_SHARES_P_SERVER; j++)
-    //     {
-    //         f_add(secretSharesServ[i][j], keySharesServ[i][j], add_res[i][j]);
-    //     }
-    // }
-
     int set[] = {1, 2, 3, 4, 5, 6}; // Example set
     int t = 2;                      // Size of tuples
 
@@ -180,10 +75,10 @@ int main()
     f_elm_t res[N_BITS];
 
     generateTuples(set, tuple, tuples, N, t, 0, 0, &totalTuples);
-    shareDistribution(shareDistr, tuples, N, N_SHARES);
-    shareCounting(shareCount, shareDistr, N, N_SHARES);
-    shareMapping(shareMap, shareDistr, N, N_SHARES);
-    generateFractions(fractionMatrix, shareCount, N_SHARES);
+    shareDistribution(shareDistr, tuples);
+    shareCounting(shareCount, shareDistr);
+    shareMapping(shareMap, shareDistr);
+    generateFractions(fractionMatrix, shareCount);
 
     strcpy(fileString, "bin/fractionMatrix.bin");
     write_elm_arr(fileString, fractionMatrix, N_SHARES * N_SHARES);
@@ -193,14 +88,14 @@ int main()
 
     f_from_ui(secret, sec_val);
     secretSharing(secretShares, secret, N_SHARES);
-    secretSharingServers(secretSharesServ, secretShares, shareMap, N, N_SHARES_P_SERVER);
+    secretSharingServers(secretSharesServ, secretShares, shareMap);
 
     for (int i = 0; i < N_BITS; i++)
     {
         f_from_ui(keys[i], key_val);
         key_val += 1;
     }
-    keySharingServersN(keySharesServ, keys, shareMap, N, N_SHARES_P_SERVER);
+    keySharingServersN(keySharesServ, keys, shareMap);
 
     for (int i = 0; i < N; i++)
     {
@@ -210,7 +105,7 @@ int main()
 
     f_from_ui(s2, s2_val);
     secretSharing(s2Shares, s2, N_SHARES);
-    secretSharingServers(s2SharesServ, s2Shares, shareMap, N, N_SHARES_P_SERVER);
+    secretSharingServers(s2SharesServ, s2Shares, shareMap);
 
     for (int i = 0; i < N; i++)
     {
@@ -218,7 +113,7 @@ int main()
         write_elm_arr(fileString, s2SharesServ[i], N_SHARES_P_SERVER);
     }
 
-    shareMultMaskN(multMaskServ, shareDistr, N, N_SHARES);
+    shareMultMaskN(multMaskServ, shareDistr);
 
     for (int i = 0; i < N; i++)
     {
@@ -226,7 +121,7 @@ int main()
         write_elm_arr(fileString, multMaskServ[i], N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
     }
 
-    shareElmMaskN(aMaskServ, shareDistr, shareCount, N, N_SHARES);
+    shareElmMaskN(aMaskServ, shareDistr, shareCount);
 
     for (int i = 0; i < N; i++)
     {
@@ -234,7 +129,7 @@ int main()
         write_elm_arr(fileString, aMaskServ[i], N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
     }
 
-    shareElmMaskN(bMaskServ, shareDistr, shareCount, N, N_SHARES);
+    shareElmMaskN(bMaskServ, shareDistr, shareCount);
 
     for (int i = 0; i < N; i++)
     {
@@ -242,7 +137,7 @@ int main()
         write_elm_arr(fileString, bMaskServ[i], N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
     }
 
-    shareElmMaskN(rMaskServ, shareDistr, shareCount, N, N_SHARES);
+    shareElmMaskN(rMaskServ, shareDistr, shareCount);
 
     for (int i = 0; i < N; i++)
     {
@@ -263,7 +158,7 @@ int main()
         }
     }
 
-    sleep(4);
+    sleep(3);
 
     struct sockaddr_in server_addr;
     int client_sock;
@@ -294,7 +189,7 @@ int main()
         {
             ssize_t bytes_received_1 = recv(client_sock, resSharesServ[i][r * N_TRANSMIT],
                                             sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
-
+            
             ssize_t bytes_received_2 = recv(client_sock, hashes[i][r * N_TRANSMIT],
                                             sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
         }
@@ -307,42 +202,14 @@ int main()
         pthread_join(threads[i], NULL);
     }
 
-    // for (int r = 0; r < N_BITS; r++)
-    // {
-    //     printf("%03d: ", r);
-    //     for (int j = 96; j < 100; j++)
-    //     {
-    //         print_f_elm_l(resSharesServ[5][r][j]);
-    //     }
-    //     printf("\n");
-    // }
+    aggregateResN(resSharesServ, expAggrRes, shareDistr);
 
-    //expandAggregateResN(resSharesServ, expAggrRes, shareDistr, N, N_BITS, N_SHARES);
-    aggregateResN(resSharesServ, expAggrRes, shareDistr, N, N_BITS, N_SHARES);
-
-    mergeHashesN(hashes, mergedHashes, shareDistr, N, N_BITS, N_SHARES);
-    compareHashesN(expAggrRes, mergedHashes, checkHash, N_BITS, N_SHARES * N_SHARES);
-
-    hashesPass = 1;
-    for (int r = 0; r < N_BITS; r++)
-    {
-        for (int i = 0; i < (N_SHARES * N_SHARES); i++)
-        {
-            if (checkHash[r][i] == 0)
-            {
-                hashesPass = 0;
-            }
-        }
-    }
-    (hashesPass == 1) ? printf("All hashes pass!\n") : printf("Error in hashes\n");
-
-    aggregateVectorN(expAggrRes, res, N_BITS, N_SHARES * N_SHARES);
-    for (int i = 0; i < N_BITS; i++)
-    {
-        printf("%03d: ", i + 1);
-        print_f_elm_l(res[i]);
-        printf("\n");
-    }
+    mergeHashesN(hashes, mergedHashes, shareDistr);
+    compareHashesN(expAggrRes, mergedHashes, checkHash);
+    checkHashesN(checkHash);
+    
+    aggregateVectorN(expAggrRes, res);
+    printResN(res);
 
     free(multMaskServ);
     free(aMaskServ);
@@ -374,6 +241,10 @@ void *server_thread(void *arg)
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT + server_id);
     server_addr.sin_addr.s_addr = INADDR_ANY;
+
+    int flags = fcntl(server_sock, F_GETFL, 0);
+    fcntl(server_sock, F_SETFL, flags & ~O_NONBLOCK);
+
 
     if (bind(server_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
     {
@@ -515,8 +386,10 @@ void *server_thread(void *arg)
 
     for (int r = 0; r < (N_BITS / N_TRANSMIT); r++)
     {
-        send(client_sock, resShares[r], sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
-        send(client_sock, hashes[r], sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
+        send(client_sock, resShares[r * N_TRANSMIT], sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
+        usleep(500);
+        send(client_sock, hashes[r * N_TRANSMIT], sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
+        usleep(500);
     }
 
     close(client_sock);

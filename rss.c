@@ -46,11 +46,25 @@ void generateTuples(int set[], int tuple[], int tuples[][2], int n, int t, int i
     }
 }
 
-void shareDistribution(int shareDistribution[][N_SHARES], int tuples[][2], int n, int n_shares)
+void printTuples(int tuples[][2], int t, int totalTuples)
 {
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < totalTuples; i++) {
+        printf("(");
+        for (int j = 0; j < t; j++) {
+            printf("%d", tuples[i][j]);
+            if (j < t - 1) {
+                printf(", ");
+            }
+        }
+        printf(")\n");
+    }
+}
+
+void shareDistribution(int shareDistribution[][N_SHARES], int tuples[][2])
+{
+    for (int i = 0; i < N; i++)
     {
-        for (int j = 0; j < n_shares; j++)
+        for (int j = 0; j < N_SHARES; j++)
         {
             if (((i + 1) != tuples[j][0]) && ((i + 1) != tuples[j][1]))
             {
@@ -64,18 +78,29 @@ void shareDistribution(int shareDistribution[][N_SHARES], int tuples[][2], int n
     }
 }
 
-void shareCounting(int shareCount[][N_SHARES], int shareDistribution[][N_SHARES], int n, int n_shares)
+void printShareDistribution(int shareDistr[][N_SHARES])
+{
+    for (int i = 0; i < N_SHARES; i++) {
+        printf("(");
+        for (int j = 0; j < N; j++) {
+            printf("%d ", shareDistr[j][i]);
+        }
+        printf(")\n");
+    }
+}
+
+void shareCounting(int shareCount[][N_SHARES], int shareDistribution[][N_SHARES])
 {
 
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < N; i++)
     {
-        for (int j = 0; j < n_shares; j++)
+        for (int j = 0; j < N_SHARES; j++)
         {
             if (shareDistribution[i][j] == 1)
             {
                 shareCount[j][j] += 1;
 
-                for (int k = j + 1; k < n_shares; k++)
+                for (int k = j + 1; k < N_SHARES; k++)
                 {
                     if (shareDistribution[i][k] == 1)
                     {
@@ -86,7 +111,7 @@ void shareCounting(int shareCount[][N_SHARES], int shareDistribution[][N_SHARES]
         }
     }
 
-    for (int i = 1; i < n_shares; i++)
+    for (int i = 1; i < N_SHARES; i++)
     {
         for (int j = 0; j < i; j++)
         {
@@ -95,20 +120,58 @@ void shareCounting(int shareCount[][N_SHARES], int shareDistribution[][N_SHARES]
     }
 }
 
-void shareMapping(int shareMap[][N_SHARES_P_SERVER], int shareDistribution[][N_SHARES], int n, int n_shares)
+void printShareCounting(int shareCount[][N_SHARES])
+{
+    for (int i = 0; i < N_SHARES; i++) {
+        printf("(");
+        for (int j = 0; j < N_SHARES; j++) {
+            printf("%d ", shareCount[i][j]);
+        }
+        printf(")\n");
+    }
+}
+
+void shareMapping(int shareMap[][N_SHARES_P_SERVER], int shareDistribution[][N_SHARES])
 {
     int ind;
 
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < N; i++)
     {
         ind = 0;
-        for (int j = 0; j < n_shares; j++)
+        for (int j = 0; j < N_SHARES; j++)
         {
             if (shareDistribution[i][j] == 1)
             {
                 shareMap[i][ind] = j + 1;
                 ind++;
             }
+        }
+    }
+}
+
+void printShareMapping(int shareMap[][N_SHARES_P_SERVER])
+{
+    for (int i = 0; i < N; i++) {
+        printf("(");
+        for (int j = 0; j < N_SHARES_P_SERVER; j++) {
+            printf("%d ", shareMap[i][j]);
+        }
+        printf(")\n");
+    }
+}
+
+void generateFractions(f_elm_t fractionMatrix[][N_SHARES], int shareCount[][N_SHARES])
+{
+    uint64_t one = 1;
+    f_elm_t tmp_mtrx[N_SHARES][N_SHARES];
+
+    for (int i = 0; i < N_SHARES; i++)
+    {
+        for (int j = 0; j < N_SHARES; j++)
+        {
+            f_from_ui(tmp_mtrx[i][j], shareCount[i][j]);
+            to_mont(tmp_mtrx[i][j], fractionMatrix[i][j]);
+            f_inv(fractionMatrix[i][j]);
         }
     }
 }
@@ -132,6 +195,16 @@ void secretSharing(f_elm_t shares[], f_elm_t secret, int n_shares)
     f_copy(partial_res[n_shares - 1], shares[n_shares - 1]);
 }
 
+void printSecretSharing(f_elm_t secretShares, int n_shares)
+{
+    for(int i = 0; i < n_shares; i++){
+        printf("Share %02d ; ", i+1);
+        print_f_elm_l(secretShares[i]);
+        printf("\n");
+    }
+    printf("\n");
+}
+
 void secretOpening(f_elm_t share[], f_elm_t secret, int n_shares)
 {
     f_elm_t partial_res[n_shares - 1];
@@ -147,13 +220,13 @@ void secretOpening(f_elm_t share[], f_elm_t secret, int n_shares)
 }
 
 void secretSharingServers(f_elm_t sharesServer[][N_SHARES_P_SERVER], f_elm_t shares[],
-                          int shareMap[][N_SHARES_P_SERVER], int n, int n_shares_p_server)
+                          int shareMap[][N_SHARES_P_SERVER])
 {
     int ind;
 
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < N; i++)
     {
-        for (int j = 0; j < n_shares_p_server; j++)
+        for (int j = 0; j < N_SHARES_P_SERVER; j++)
         {
             ind = shareMap[i][j];
             f_copy(shares[ind - 1], sharesServer[i][j]);
@@ -161,8 +234,18 @@ void secretSharingServers(f_elm_t sharesServer[][N_SHARES_P_SERVER], f_elm_t sha
     }
 }
 
+void printSecretSharingServers(f_elm_t sharesServer[][N_SHARES_P_SERVER])
+{
+    for(int i = 0; i < N; i++){
+        for(int j = 0; j < N_SHARES_P_SERVER; j++){
+            print_f_elm_l(sharesServer[i][j]);
+        }
+        printf("\n");
+    }
+}
+
 void keySharingServersN(f_elm_t sharesServer[][N_BITS][N_SHARES_P_SERVER], f_elm_t keys[],
-                        int shareMap[][N_SHARES_P_SERVER], int n, int n_shares_p_server)
+                        int shareMap[][N_SHARES_P_SERVER])
 {
     int ind;
     f_elm_t shares[N_SHARES];
@@ -170,9 +253,9 @@ void keySharingServersN(f_elm_t sharesServer[][N_BITS][N_SHARES_P_SERVER], f_elm
     for (int r = 0; r < N_BITS; r++)
     {
         secretSharing(shares, keys[r], N_SHARES);
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < N; i++)
         {
-            for (int j = 0; j < n_shares_p_server; j++)
+            for (int j = 0; j < N_SHARES_P_SERVER; j++)
             {
                 ind = shareMap[i][j];
                 f_copy(shares[ind - 1], sharesServer[i][r][j]);
@@ -181,26 +264,11 @@ void keySharingServersN(f_elm_t sharesServer[][N_BITS][N_SHARES_P_SERVER], f_elm
     }
 }
 
-void generateFractions(f_elm_t fractionMatrix[][N_SHARES], int shareCount[][N_SHARES], int n_shares)
-{
-    uint64_t one = 1;
-    f_elm_t tmp_mtrx[N_SHARES][N_SHARES];
-
-    for (int i = 0; i < n_shares; i++)
-    {
-        for (int j = 0; j < n_shares; j++)
-        {
-            f_from_ui(tmp_mtrx[i][j], shareCount[i][j]);
-            to_mont(tmp_mtrx[i][j], fractionMatrix[i][j]);
-            f_inv(fractionMatrix[i][j]);
-        }
-    }
-}
 
 void shareMultMaskN(f_elm_t multMaskServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
-                    int shareDistr[][N_SHARES], int n, int n_shares)
+                    int shareDistr[][N_SHARES])
 {
-    int servInd[n];
+    int servInd[N];
 
     uint64_t zero_ui = 0;
     f_elm_t zero;
@@ -214,15 +282,15 @@ void shareMultMaskN(f_elm_t multMaskServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_
 
         secretSharing(multMask, zero, N_SHARES * N_SHARES);
 
-        for (int i = 0; i < n_shares; i++)
+        for (int i = 0; i < N_SHARES; i++)
         {
-            for (int j = 0; j < n_shares; j++)
+            for (int j = 0; j < N_SHARES; j++)
             {
-                for (int k = 0; k < n; k++)
+                for (int k = 0; k < N; k++)
                 {
                     if ((shareDistr[k][i] == 1) && (shareDistr[k][j] == 1))
                     {
-                        f_copy(multMask[i * n_shares + j], multMaskServ[k][r][servInd[k]]);
+                        f_copy(multMask[i * N_SHARES + j], multMaskServ[k][r][servInd[k]]);
                         servInd[k] += 1;
                     }
                 }
@@ -232,9 +300,9 @@ void shareMultMaskN(f_elm_t multMaskServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_
 }
 
 void shareElmMaskN(f_elm_t elmMaskServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
-                   int shareDistr[][N_SHARES], int shareCount[][N_SHARES], int n, int n_shares)
+                   int shareDistr[][N_SHARES], int shareCount[][N_SHARES])
 {
-    int servInd[n];
+    int servInd[N];
 
     uint64_t zero_ui = 0;
     f_elm_t zero;
@@ -247,16 +315,16 @@ void shareElmMaskN(f_elm_t elmMaskServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_
     {
         memset(servInd, 0, sizeof(servInd));
 
-        for (int i = 0; i < n_shares; i++)
+        for (int i = 0; i < N_SHARES; i++)
         {
-            for (int j = 0; j < n_shares; j++)
+            for (int j = 0; j < N_SHARES; j++)
             {
                 n_row_shares = shareCount[i][j];
                 f_elm_t rowShares[n_row_shares];
                 secretSharing(rowShares, zero, n_row_shares);
 
                 indRowShare = 0;
-                for (int k = 0; k < n; k++)
+                for (int k = 0; k < N; k++)
                 {
                     if ((shareDistr[k][i] == 1) && (shareDistr[k][j] == 1))
                     {
@@ -271,10 +339,9 @@ void shareElmMaskN(f_elm_t elmMaskServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_
 }
 
 void aggregateResN(f_elm_t resServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
-                   f_elm_t expAggrRes[][N_SHARES * N_SHARES], int shareDistr[][N_SHARES],
-                   int n, int n_bits, int n_shares)
+                   f_elm_t expAggrRes[][N_SHARES * N_SHARES], int shareDistr[][N_SHARES])
 {
-    int servInd[n];
+    int servInd[N];
     memset(servInd, 0, sizeof(servInd));
 
     uint64_t zero_ui = 0;
@@ -283,26 +350,26 @@ void aggregateResN(f_elm_t resServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERV
 
     f_elm_t sum;
 
-    for (int r = 0; r < n_bits; r++)
+    for (int r = 0; r < N_BITS; r++)
     {
-        for (int i = 0; i < (n_shares * n_shares); i++)
+        for (int i = 0; i < (N_SHARES * N_SHARES); i++)
         {
             f_copy(zero, expAggrRes[r][i]);
         }
     }
 
-    for (int i = 0; i < n_shares; i++)
+    for (int i = 0; i < N_SHARES; i++)
     {
-        for (int j = 0; j < n_shares; j++)
+        for (int j = 0; j < N_SHARES; j++)
         {
-            for (int k = 0; k < n; k++)
+            for (int k = 0; k < N; k++)
             {
                 if ((shareDistr[k][i] == 1) && (shareDistr[k][j] == 1))
                 {
-                    for (int r = 0; r < n_bits; r++)
+                    for (int r = 0; r < N_BITS; r++)
                     {
-                        f_add(resServ[k][r][servInd[k]], expAggrRes[r][i * n_shares + j], sum);
-                        f_copy(sum, expAggrRes[r][i * n_shares + j]);
+                        f_add(resServ[k][r][servInd[k]], expAggrRes[r][i * N_SHARES + j], sum);
+                        f_copy(sum, expAggrRes[r][i * N_SHARES + j]);
                     }
                     servInd[k] += 1;
                 }
@@ -311,7 +378,7 @@ void aggregateResN(f_elm_t resServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERV
     }
 }
 
-void aggregateVectorN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t res[], int n_bits, int n_shares)
+void aggregateVectorN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t res[])
 {
     f_elm_t sum_1, sum_2;
 
@@ -319,10 +386,10 @@ void aggregateVectorN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t res[], 
     f_elm_t zero;
     f_from_ui(zero, zero_ui);
 
-    for (int r = 0; r < n_bits; r++)
+    for (int r = 0; r < N_BITS; r++)
     {
         f_copy(zero, sum_1);
-        for (int i = 0; i < n_shares; i++)
+        for (int i = 0; i < (N_SHARES * N_SHARES); i++)
         {
             f_add(expAggrRes[r][i], sum_1, sum_2);
             f_copy(sum_2, sum_1);
@@ -332,21 +399,20 @@ void aggregateVectorN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t res[], 
 }
 
 void mergeHashesN(f_elm_t hashes[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
-                  f_elm_t mergedHashes[][N_SHARES * N_SHARES], int shareDistr[][N_SHARES],
-                  int n, int n_bits, int n_shares)
+                  f_elm_t mergedHashes[][N_SHARES * N_SHARES], int shareDistr[][N_SHARES])
 {
-    int servInd[n];
+    int servInd[N];
     memset(servInd, 0, sizeof(servInd));
 
-    for (int i = 0; i < n_shares; i++)
+    for (int i = 0; i < N_SHARES; i++)
     {
-        for (int j = 0; j < n_shares; j++)
+        for (int j = 0; j < N_SHARES; j++)
         {
-            for (int k = 0; k < n; k++)
+            for (int k = 0; k < N; k++)
             {
                 if ((shareDistr[k][i] == 1) && (shareDistr[k][j] == 1))
                 {
-                    for (int r = 0; r < n_bits; r++)
+                    for (int r = 0; r < N_BITS; r++)
                     {
                         f_copy(hashes[k][r][servInd[k]], mergedHashes[r][i * N_SHARES + j]);
                     }
@@ -358,15 +424,15 @@ void mergeHashesN(f_elm_t hashes[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER
 }
 
 void compareHashesN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t mergedHashes[][N_SHARES * N_SHARES],
-                    int checkHash[][N_SHARES * N_SHARES], int n_bits, int n_shares)
+                    int checkHash[][N_SHARES * N_SHARES])
 {
     f_elm_t curr_hash;
     char *ptr1, *ptr2;
     int equal;
 
-    for (int r = 0; r < n_bits; r++)
+    for (int r = 0; r < N_BITS; r++)
     {
-        for (int i = 0; i < n_shares; i++)
+        for (int i = 0; i < (N_SHARES * N_SHARES); i++)
         {
             shake128((unsigned char *)curr_hash, WORDS_FIELD * 8,
                      (unsigned char *)expAggrRes[r][i], WORDS_FIELD * 8);
@@ -384,5 +450,40 @@ void compareHashesN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t mergedHas
             }
             checkHash[r][i] = equal;
         }
+    }
+}
+
+void checkHashesN(int checkHash[][N_SHARES * N_SHARES])
+{
+    int hashesPass = 1;
+    
+    for (int r = 0; r < N_BITS; r++)
+    {
+        for (int i = 0; i < (N_SHARES * N_SHARES); i++)
+        {
+            if (checkHash[r][i] == 0)
+            {
+                hashesPass = 0;
+            }
+        }
+    }
+
+    if (hashesPass == 1) 
+    {
+        printf("All hashes pass!\n"); 
+    }
+    else
+    {
+        printf("Error in hashes\n");
+    }
+}
+
+void printResN(f_elm_t res[])
+{
+    for (int i = 0; i < N_BITS; i++)
+    {
+        printf("%03d: ", i + 1);
+        print_f_elm_l(res[i]);
+        printf("\n");
     }
 }
