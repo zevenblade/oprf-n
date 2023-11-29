@@ -19,8 +19,8 @@ struct ReceiverData
 {
     int id;
     f_elm_t secretShares[N_SHARES_P_SERVER];
-    f_elm_t receivedShares[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER];
-    f_elm_t hashes[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER];
+    f_elm_t (*receivedShares)[N_SHARES_P_SERVER * N_SHARES_P_SERVER];
+    f_elm_t (*hashes)[N_SHARES_P_SERVER * N_SHARES_P_SERVER];
 };
 
 void *receiver_function(void *arg);
@@ -180,6 +180,9 @@ int main()
         {
             f_copy(secretSharesServ[i][j], receiver_data[i].secretShares[j]);
         }
+
+        receiver_data[i].receivedShares = malloc(sizeof(f_elm_t) * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
+        receiver_data[i].hashes = malloc(sizeof(f_elm_t) * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
 
         if (pthread_create(&receiver_threads[i], NULL, receiver_function, (void *)&receiver_data[i]) != 0) {
             perror("Error creating thread");
