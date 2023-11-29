@@ -168,7 +168,7 @@ int main()
         }
     }
 
-    sleep(3);
+    usleep(1000000);
 
     pthread_t receiver_threads[N];
     struct ReceiverData receiver_data[N];
@@ -397,7 +397,7 @@ void *server_thread(void *arg)
         send(client_sock, hashes[r * N_TRANSMIT], sizeof(f_elm_t) * N_TRANSMIT * N_SHARES_P_SERVER * N_SHARES_P_SERVER, 0);
         usleep(200000);
         // usleep(200000);
-        // usleep(500);
+        //usleep(500);
     }
 
     close(client_sock);
