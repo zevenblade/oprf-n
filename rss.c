@@ -48,11 +48,14 @@ void generateTuples(int set[], int tuple[], int tuples[][2], int n, int t, int i
 
 void printTuples(int tuples[][2], int t, int totalTuples)
 {
-    for (int i = 0; i < totalTuples; i++) {
+    for (int i = 0; i < totalTuples; i++)
+    {
         printf("(");
-        for (int j = 0; j < t; j++) {
+        for (int j = 0; j < t; j++)
+        {
             printf("%d", tuples[i][j]);
-            if (j < t - 1) {
+            if (j < t - 1)
+            {
                 printf(", ");
             }
         }
@@ -80,9 +83,11 @@ void shareDistribution(int shareDistribution[][N_SHARES], int tuples[][2])
 
 void printShareDistribution(int shareDistr[][N_SHARES])
 {
-    for (int i = 0; i < N_SHARES; i++) {
+    for (int i = 0; i < N_SHARES; i++)
+    {
         printf("(");
-        for (int j = 0; j < N; j++) {
+        for (int j = 0; j < N; j++)
+        {
             printf("%d ", shareDistr[j][i]);
         }
         printf(")\n");
@@ -122,9 +127,11 @@ void shareCounting(int shareCount[][N_SHARES], int shareDistribution[][N_SHARES]
 
 void printShareCounting(int shareCount[][N_SHARES])
 {
-    for (int i = 0; i < N_SHARES; i++) {
+    for (int i = 0; i < N_SHARES; i++)
+    {
         printf("(");
-        for (int j = 0; j < N_SHARES; j++) {
+        for (int j = 0; j < N_SHARES; j++)
+        {
             printf("%d ", shareCount[i][j]);
         }
         printf(")\n");
@@ -151,9 +158,11 @@ void shareMapping(int shareMap[][N_SHARES_P_SERVER], int shareDistribution[][N_S
 
 void printShareMapping(int shareMap[][N_SHARES_P_SERVER])
 {
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < N; i++)
+    {
         printf("(");
-        for (int j = 0; j < N_SHARES_P_SERVER; j++) {
+        for (int j = 0; j < N_SHARES_P_SERVER; j++)
+        {
             printf("%d ", shareMap[i][j]);
         }
         printf(")\n");
@@ -197,8 +206,9 @@ void secretSharing(f_elm_t shares[], f_elm_t secret, int n_shares)
 
 void printSecretSharing(f_elm_t secretShares, int n_shares)
 {
-    for(int i = 0; i < n_shares; i++){
-        printf("Share %02d ; ", i+1);
+    for (int i = 0; i < n_shares; i++)
+    {
+        printf("Share %02d ; ", i + 1);
         print_f_elm_l(secretShares[i]);
         printf("\n");
     }
@@ -236,8 +246,10 @@ void secretSharingServers(f_elm_t sharesServer[][N_SHARES_P_SERVER], f_elm_t sha
 
 void printSecretSharingServers(f_elm_t sharesServer[][N_SHARES_P_SERVER])
 {
-    for(int i = 0; i < N; i++){
-        for(int j = 0; j < N_SHARES_P_SERVER; j++){
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N_SHARES_P_SERVER; j++)
+        {
             print_f_elm_l(sharesServer[i][j]);
         }
         printf("\n");
@@ -263,7 +275,6 @@ void keySharingServersN(f_elm_t sharesServer[][N_BITS][N_SHARES_P_SERVER], f_elm
         }
     }
 }
-
 
 void shareMultMaskN(f_elm_t multMaskServ[][N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER],
                     int shareDistr[][N_SHARES])
@@ -456,7 +467,7 @@ void compareHashesN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t mergedHas
 void checkHashesN(int checkHash[][N_SHARES * N_SHARES])
 {
     int hashesPass = 1;
-    
+
     for (int r = 0; r < N_BITS; r++)
     {
         for (int i = 0; i < (N_SHARES * N_SHARES); i++)
@@ -468,9 +479,9 @@ void checkHashesN(int checkHash[][N_SHARES * N_SHARES])
         }
     }
 
-    if (hashesPass == 1) 
+    if (hashesPass == 1)
     {
-        printf("All hashes pass!\n"); 
+        printf("All hashes pass!\n");
     }
     else
     {
@@ -487,3 +498,15 @@ void printResN(f_elm_t res[])
         printf("\n");
     }
 }
+
+void calculateOPRF(f_elm_t resElm[], unsigned char *resOPRF)
+{
+    f_elm_t resElm_mont;
+
+    for (int i = 0; i < N_BITS; i++)
+    {
+        to_mont(resElm[i], resElm_mont);
+        f_leg(resElm_mont, resOPRF + i);
+    }
+}
+

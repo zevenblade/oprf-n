@@ -7,6 +7,9 @@
 #define N 6
 #define N_SHARES 15
 #define N_SHARES_P_SERVER 10
+
+#define T 2
+
 #define N_BITS 128
 #define N_TRANSMIT 16
 
@@ -66,4 +69,7 @@ void compareHashesN(f_elm_t expAggrRes[][N_SHARES * N_SHARES], f_elm_t mergedHas
 void checkHashesN(int checkHash[][N_SHARES * N_SHARES]); 
 
 void printResN(f_elm_t res[]);
+
+void calculateOPRF(f_elm_t resElm[], unsigned char *resOPRF);
+
 #endif

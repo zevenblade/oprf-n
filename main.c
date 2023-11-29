@@ -28,10 +28,14 @@ void *server_thread(void *arg);
 
 int main()
 {
-    int set[] = {1, 2, 3, 4, 5, 6}; // Example set
-    int t = 2;                      // Size of tuples
+    int set[N]; // Example set
 
-    int tuple[t];            // Array to store a tuple
+    for(int i = 0; i < N; i++)
+    {
+        set[i] = i + 1;
+    }
+
+    int tuple[T];            // Array to store a tuple
     int tuples[N_SHARES][2]; // 2D array to store all tuples (adjust the size accordingly)
     int totalTuples = 0;     // Variable to keep track of the total number of tuples
 
@@ -83,8 +87,10 @@ int main()
     f_elm_t(*expAggrRes)[N_SHARES * N_SHARES] =
         malloc(sizeof(f_elm_t) * N_BITS * N_SHARES * N_SHARES);
     f_elm_t res[N_BITS];
+    f_elm_t res_mont[N_BITS];
+    unsigned char resOPRF[N_BITS];
 
-    generateTuples(set, tuple, tuples, N, t, 0, 0, &totalTuples);
+    generateTuples(set, tuple, tuples, N, T, 0, 0, &totalTuples);
     shareDistribution(shareDistr, tuples);
     shareCounting(shareCount, shareDistr);
     shareMapping(shareMap, shareDistr);
@@ -219,7 +225,14 @@ int main()
     checkHashesN(checkHash);
 
     aggregateVectorN(expAggrRes, res);
-    printResN(res);
+    //printResN(res);
+
+    calculateOPRF(res, resOPRF);
+    for(int i = 0; i < N_BITS; i++)
+    {
+        printf("%d", resOPRF[i]);
+    }
+    printf("\n");
 
     free(multMaskServ);
     free(aMaskServ);
