@@ -36,7 +36,7 @@ int main()
     }
 
     int tuple[T];            // Array to store a tuple
-    int tuples[N_SHARES][2]; // 2D array to store all tuples (adjust the size accordingly)
+    int tuples[N_SHARES][T]; // 2D array to store all tuples (adjust the size accordingly)
     int totalTuples = 0;     // Variable to keep track of the total number of tuples
 
     char fileString[30];

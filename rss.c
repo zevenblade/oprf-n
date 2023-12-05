@@ -27,7 +27,7 @@ unsigned long long binomialCoefficient(int n, int k)
     return factorial(n) / (factorial(k) * factorial(n - k));
 }
 
-void generateTuples(int set[], int tuple[], int tuples[][2], int n, int t, int index, int tupleIndex, int *totalTuples)
+void generateTuples(int set[], int tuple[], int tuples[][T], int n, int t, int index, int tupleIndex, int *totalTuples)
 {
     if (tupleIndex == t)
     {
@@ -63,13 +63,24 @@ void printTuples(int tuples[][2], int t, int totalTuples)
     }
 }
 
-void shareDistribution(int shareDistribution[][N_SHARES], int tuples[][2])
+void shareDistribution(int shareDistribution[][N_SHARES], int tuples[][T])
 {
+    int not;
+
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < N_SHARES; j++)
         {
-            if (((i + 1) != tuples[j][0]) && ((i + 1) != tuples[j][1]))
+            not = 0;
+            for (int k = 0; k < T; k++)
+            {
+                if((i + 1) == tuples[j][k])
+                {
+                    not = 1;
+                }
+            }
+
+            if (!not)
             {
                 shareDistribution[i][j] = 1;
             }

@@ -17,11 +17,11 @@ unsigned long long factorial(int num);
 
 unsigned long long binomialCoefficient(int n, int k);
 
-void generateTuples(int set[], int tuple[], int tuples[][2], int n, int t, int index, int tupleIndex, int *totalTuples);
+void generateTuples(int set[], int tuple[], int tuples[][T], int n, int t, int index, int tupleIndex, int *totalTuples);
 
 void printTuples(int tuples[][2], int t, int totalTuples);
 
-void shareDistribution(int shareDistribution[][N_SHARES], int tuples[][2]);
+void shareDistribution(int shareDistribution[][N_SHARES], int tuples[][T]);
 
 void printShareDistribution(int shareDistr[][N_SHARES]);
 
