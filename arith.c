@@ -340,7 +340,7 @@ void f_inv(f_elm_t a)
     // bit 255 = 0
     // bit 254
     f_mul(t0, a, t0);
-    
+
     // bits 253 down to 5
     for (int i = 253; i > 4; i--)
     {

@@ -30,7 +30,7 @@ int main()
 {
     int set[N]; // Example set
 
-    for(int i = 0; i < N; i++)
+    for (int i = 0; i < N; i++)
     {
         set[i] = i + 1;
     }
@@ -50,9 +50,11 @@ int main()
     uint64_t s2_val = 2;
     uint64_t zero = 0;
 
-    f_elm_t fractionMatrix[N_SHARES][N_SHARES];
-    f_elm_t shareCountMont[N_SHARES][N_SHARES];
-    f_elm_t checkMatrix[N_SHARES][N_SHARES];
+    f_elm_t(*fractionMatrix)[N_SHARES] =
+        malloc(sizeof(f_elm_t) * N_SHARES * N_SHARES);
+    f_elm_t(*shareCountMont)[N_SHARES] =
+        malloc(sizeof(f_elm_t) * N_SHARES * N_SHARES);
+    // f_elm_t (*checkMatrix)[N_SHARES][N_SHARES];
 
     f_elm_t secret;
     f_elm_t secretShares[N_SHARES];
@@ -179,10 +181,11 @@ int main()
     pthread_t receiver_threads[N];
     struct ReceiverData receiver_data[N];
 
-    for (int i = 0; i < N; ++i) {
+    for (int i = 0; i < N; ++i)
+    {
         receiver_data[i].id = i;
 
-        for(int j = 0; j < N_SHARES_P_SERVER; j++)
+        for (int j = 0; j < N_SHARES_P_SERVER; j++)
         {
             f_copy(secretSharesServ[i][j], receiver_data[i].secretShares[j]);
         }
@@ -190,7 +193,8 @@ int main()
         receiver_data[i].receivedShares = malloc(sizeof(f_elm_t) * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
         receiver_data[i].hashes = malloc(sizeof(f_elm_t) * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
 
-        if (pthread_create(&receiver_threads[i], NULL, receiver_function, (void *)&receiver_data[i]) != 0) {
+        if (pthread_create(&receiver_threads[i], NULL, receiver_function, (void *)&receiver_data[i]) != 0)
+        {
             perror("Error creating thread");
             exit(EXIT_FAILURE);
         }
@@ -201,16 +205,16 @@ int main()
         pthread_join(server_threads[i], NULL);
     }
 
-    for (int i = 0; i < N; ++i) 
+    for (int i = 0; i < N; ++i)
     {
-        pthread_join(receiver_threads[i], NULL);    
+        pthread_join(receiver_threads[i], NULL);
     }
 
-    for(int i = 0; i < N; i++)
+    for (int i = 0; i < N; i++)
     {
-        for(int j = 0; j < N_BITS; j++)
+        for (int j = 0; j < N_BITS; j++)
         {
-            for(int k = 0; k < (N_SHARES_P_SERVER * N_SHARES_P_SERVER); k++)
+            for (int k = 0; k < (N_SHARES_P_SERVER * N_SHARES_P_SERVER); k++)
             {
                 f_copy(receiver_data[i].receivedShares[j][k], resSharesServ[i][j][k]);
                 f_copy(receiver_data[i].hashes[j][k], hashes[i][j][k]);
@@ -225,10 +229,10 @@ int main()
     checkHashesN(checkHash);
 
     aggregateVectorN(expAggrRes, res);
-    //printResN(res);
+    // printResN(res);
 
     calculateOPRF(res, resOPRF);
-    for(int i = 0; i < N_BITS; i++)
+    for (int i = 0; i < N_BITS; i++)
     {
         printf("%d", resOPRF[i]);
     }
@@ -431,8 +435,8 @@ void *receiver_function(void *arg)
     struct ReceiverData *data = (struct ReceiverData *)arg;
     int id = data->id;
     f_elm_t *secretShares = data->secretShares;
-    f_elm_t (*resSharesServ)[N_SHARES_P_SERVER * N_SHARES_P_SERVER] = data->receivedShares;
-    f_elm_t (*hashes)[N_SHARES_P_SERVER * N_SHARES_P_SERVER] = data->hashes;
+    f_elm_t(*resSharesServ)[N_SHARES_P_SERVER * N_SHARES_P_SERVER] = data->receivedShares;
+    f_elm_t(*hashes)[N_SHARES_P_SERVER * N_SHARES_P_SERVER] = data->hashes;
 
     struct sockaddr_in server_addr;
     int client_sock;

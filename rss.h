@@ -4,14 +4,14 @@
 #include <stdio.h>
 #include "arith.h"
 
-#define N 6
-#define N_SHARES 15
-#define N_SHARES_P_SERVER 10
+#define N 10
+#define N_SHARES 120
+#define N_SHARES_P_SERVER 84
 
-#define T 2
+#define T 3
 
-#define N_BITS 128
-#define N_TRANSMIT 16
+#define N_BITS 192
+#define N_TRANSMIT 8
 
 unsigned long long factorial(int num);
 
