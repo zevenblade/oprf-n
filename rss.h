@@ -11,7 +11,7 @@
 #define T 3
 
 #define N_BITS 192
-#define N_TRANSMIT 8
+#define N_TRANSMIT 4
 
 unsigned long long factorial(int num);
 

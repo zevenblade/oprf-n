@@ -18,7 +18,7 @@
 struct ReceiverData
 {
     int id;
-    f_elm_t secretShares[N_SHARES_P_SERVER];
+    f_elm_t *secretShares;
     f_elm_t (*receivedShares)[N_SHARES_P_SERVER * N_SHARES_P_SERVER];
     f_elm_t (*hashes)[N_SHARES_P_SERVER * N_SHARES_P_SERVER];
 };
@@ -57,15 +57,16 @@ int main()
     // f_elm_t (*checkMatrix)[N_SHARES][N_SHARES];
 
     f_elm_t secret;
-    f_elm_t secretShares[N_SHARES];
-    f_elm_t secretSharesServ[N][N_SHARES_P_SERVER];
+    f_elm_t (*secretShares) = malloc(sizeof(f_elm_t) * N_SHARES);
+    f_elm_t (*secretSharesServ)[N_SHARES_P_SERVER] = malloc(sizeof(f_elm_t) * N * N_SHARES_P_SERVER);
 
-    f_elm_t keys[N_BITS];
-    f_elm_t keySharesServ[N][N_BITS][N_SHARES_P_SERVER];
+    f_elm_t (*keys) = malloc(sizeof(f_elm_t) * N_BITS);
+    f_elm_t (*keySharesServ)[N_BITS][N_SHARES_P_SERVER] = 
+        malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER);
 
     f_elm_t s2;
-    f_elm_t s2Shares[N_SHARES];
-    f_elm_t s2SharesServ[N][N_SHARES_P_SERVER];
+    f_elm_t (*s2Shares) = malloc(sizeof(f_elm_t) * N_SHARES);
+    f_elm_t (*s2SharesServ)[N_SHARES_P_SERVER] = malloc(sizeof(f_elm_t) * N * N_SHARES_P_SERVER);
 
     f_elm_t(*multMaskServ)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
         malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
@@ -81,15 +82,15 @@ int main()
         malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
     f_elm_t(*mergedHashes)[N_SHARES * N_SHARES] =
         malloc(sizeof(f_elm_t) * N_BITS * N_SHARES * N_SHARES);
-    int checkHash[N_BITS][N_SHARES * N_SHARES];
+    int (*checkHash)[N_SHARES * N_SHARES] = 
+        malloc(sizeof(int) * N_BITS * N_SHARES * N_SHARES);
     int hashesPass;
 
     f_elm_t(*resSharesServ)[N_BITS][N_SHARES_P_SERVER * N_SHARES_P_SERVER] =
         malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER * N_SHARES_P_SERVER);
     f_elm_t(*expAggrRes)[N_SHARES * N_SHARES] =
         malloc(sizeof(f_elm_t) * N_BITS * N_SHARES * N_SHARES);
-    f_elm_t res[N_BITS];
-    f_elm_t res_mont[N_BITS];
+    f_elm_t (*res) = malloc(sizeof(f_elm_t) * N_BITS);
     unsigned char resOPRF[N_BITS];
 
     generateTuples(set, tuple, tuples, N, T, 0, 0, &totalTuples);
@@ -185,6 +186,7 @@ int main()
     {
         receiver_data[i].id = i;
 
+        receiver_data[i].secretShares = malloc(sizeof(f_elm_t) * N_SHARES_P_SERVER);
         for (int j = 0; j < N_SHARES_P_SERVER; j++)
         {
             f_copy(secretSharesServ[i][j], receiver_data[i].secretShares[j]);
