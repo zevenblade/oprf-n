@@ -286,7 +286,7 @@ void f_inv(f_elm_t a)
     // bit 191 = 1
     f_mul(t0, a, t0);
     // bits 190 down to 8
-    for (int i = 189; i > 7; i--)
+    for (int i = 190; i > 7; i--)
     {
         f_mul(t0, t0, t0);
         f_mul(t0, a, t0);
@@ -340,8 +340,7 @@ void f_inv(f_elm_t a)
     // bit 255 = 0
     // bit 254
     f_mul(t0, a, t0);
-    // bit = 253
-    f_mul(t0, a, t0);
+    
     // bits 253 down to 5
     for (int i = 253; i > 4; i--)
     {
