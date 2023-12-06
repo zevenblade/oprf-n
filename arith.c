@@ -263,6 +263,108 @@ void f_inv(f_elm_t a)
 
     f_copy(t0, a);
 #endif
+
+#if (NBITS_FIELD == 192)
+    unsigned int i;
+    f_elm_t t0 = {0};
+    f_copy(Mont_one, t0);
+
+    /* p - 2 =     0b   1111111111111111
+                        1111111111111111
+                        1111111111111111
+                        1111111111111111
+                        1111111111111111
+                        1111111111111111
+                        1111111111111111
+                        1111111111111111
+                        1111111111111111
+                        1111111111111111
+                        1111111111111111
+                        1111111100010001\
+    */
+    // Compute a^(p-2)
+    // bit 191 = 1
+    f_mul(t0, a, t0);
+    // bits 190 down to 8
+    for (int i = 189; i > 7; i--)
+    {
+        f_mul(t0, t0, t0);
+        f_mul(t0, a, t0);
+    }
+    // bit = 7
+    f_mul(t0, t0, t0);
+    // bit = 6
+    f_mul(t0, t0, t0);
+    // bit = 5
+    f_mul(t0, t0, t0);
+    // bit = 4
+    f_mul(t0, t0, t0);
+    f_mul(t0, a, t0);
+    // bit = 3
+    f_mul(t0, t0, t0);
+    // bit = 2
+    f_mul(t0, t0, t0);
+    // bit = 1
+    f_mul(t0, t0, t0);
+    // bit = 0
+    f_mul(t0, t0, t0);
+    f_mul(t0, a, t0);
+
+    f_copy(t0, a);
+#endif
+
+#if (NBITS_FIELD == 256)
+    unsigned int i;
+    f_elm_t t0 = {0};
+    f_copy(Mont_one, t0);
+
+    /* p - 2 =     0b   0111111111111111\
+                        1111111111111111\
+                        1111111111111111\
+                        1111111111111111\
+                        1111111111111111\
+                        1111111111111111\
+                        1111111111111111\
+                        1111111111111111\
+                        1111111111111111\
+                        1111111111111111\
+                        1111111111111111\
+                        1111111111111111\
+                        1111111111111111\
+                        1111111111111111\
+                        1111111111111111\
+                        1111111111101011\
+    */
+
+    // Compute a^(p-2)
+    // bit 255 = 0
+    // bit 254
+    f_mul(t0, a, t0);
+    // bit = 253
+    f_mul(t0, a, t0);
+    // bits 253 down to 5
+    for (int i = 253; i > 4; i--)
+    {
+        f_mul(t0, t0, t0);
+        f_mul(t0, a, t0);
+    }
+
+    // bit = 4
+    f_mul(t0, t0, t0);
+    // bit = 3
+    f_mul(t0, t0, t0);
+    f_mul(t0, a, t0);
+    // bit = 2
+    f_mul(t0, t0, t0);
+    // bit = 1
+    f_mul(t0, t0, t0);
+    f_mul(t0, a, t0);
+    // bit = 0
+    f_mul(t0, t0, t0);
+    f_mul(t0, a, t0);
+
+    f_copy(t0, a);
+#endif
 }
 
 void f_leg(const f_elm_t a, unsigned char *b)
@@ -389,7 +491,7 @@ void f_leg(const f_elm_t a, unsigned char *b)
     // bit = 253
     f_mul(t0, a, t0);
     // bits 252 down to 4
-    for (int i = 252, i > 3; i--)
+    for (int i = 252; i > 3; i--)
     {
         f_mul(t0, t0, t0);
         f_mul(t0, a, t0);
