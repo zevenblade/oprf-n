@@ -64,7 +64,8 @@ int main()
     f_elm_t (*keySharesServ)[N_BITS][N_SHARES_P_SERVER] = 
         malloc(sizeof(f_elm_t) * N * N_BITS * N_SHARES_P_SERVER);
 
-    f_elm_t s2;
+    f_elm_t s, s_mont;
+    f_elm_t s2_mont, s2;
     f_elm_t (*s2Shares) = malloc(sizeof(f_elm_t) * N_SHARES);
     f_elm_t (*s2SharesServ)[N_SHARES_P_SERVER] = malloc(sizeof(f_elm_t) * N * N_SHARES_P_SERVER);
 
@@ -105,14 +106,13 @@ int main()
     strcpy(fileString, "bin/shareMap.bin");
     write_int_arr(fileString, shareMap, N * N_SHARES_P_SERVER);
 
-    f_from_ui(secret, sec_val);
+    f_rand(secret);
     secretSharing(secretShares, secret, N_SHARES);
     secretSharingServers(secretSharesServ, secretShares, shareMap);
 
     for (int i = 0; i < N_BITS; i++)
     {
-        f_from_ui(keys[i], key_val);
-        key_val += 1;
+        f_rand(keys[i]);
     }
     keySharingServersN(keySharesServ, keys, shareMap);
 
@@ -122,7 +122,10 @@ int main()
         write_elm_arr(fileString, keySharesServ[i], N_BITS * N_SHARES_P_SERVER);
     }
 
-    f_from_ui(s2, s2_val);
+    f_rand(s);
+    to_mont(s, s_mont);
+    f_mul(s_mont, s_mont, s2_mont);
+    from_mont(s2_mont, s2);
     secretSharing(s2Shares, s2, N_SHARES);
     secretSharingServers(s2SharesServ, s2Shares, shareMap);
 
